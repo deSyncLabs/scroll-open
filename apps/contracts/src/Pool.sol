@@ -42,15 +42,15 @@ contract Pool is IPool, ReentrancyGuard {
         lastUpdateTimestamp = block.timestamp;
     }
 
-    function deposit(uint256 amount) external override nonReentrant {
-        deToken.mint(msg.sender, amount);
+    function deposit(uint256 amount_) external override nonReentrant {
+        deToken.mint(msg.sender, amount_);
     }
 
-    function unlock(uint256 amount) external override nonReentrant {
-        deToken.burn(msg.sender, amount);
-        unlocked[msg.sender] += amount;
+    function unlock(uint256 amount_) external override nonReentrant {
+        deToken.burn(msg.sender, amount_);
+        unlocked[msg.sender] += amount_;
 
-        emit UnlockIntentPosted(msg.sender, amount, block.timestamp);
+        emit UnlockIntentPosted(msg.sender, amount_, block.timestamp);
     }
 
     function withdraw() external override nonReentrant {
@@ -61,6 +61,8 @@ contract Pool is IPool, ReentrancyGuard {
 
         emit Withdrawn(msg.sender, amount, block.timestamp);
     }
+
+    function borrow(uint256 amount_) external override nonReentrant {}
 
     function updateLiquidityIndex() external override {
         uint256 timeElapsed = block.timestamp - lastUpdateTimestamp;

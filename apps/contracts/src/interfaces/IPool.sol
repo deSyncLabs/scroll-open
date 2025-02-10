@@ -15,6 +15,8 @@ interface IPool {
 
     function withdraw() external;
 
+    function borrow(uint256 amount) external;
+
     function updateLiquidityIndex() external;
 
     function liquidityIndex() external view returns (uint256);
