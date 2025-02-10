@@ -62,7 +62,9 @@ contract Pool is IPool, ReentrancyGuard {
         emit Withdrawn(msg.sender, amount, block.timestamp);
     }
 
-    function borrow(uint256 amount_) external override nonReentrant {}
+    function borrow(uint256 amount_) external override nonReentrant {
+
+    }
 
     function updateLiquidityIndex() external override {
         uint256 timeElapsed = block.timestamp - lastUpdateTimestamp;
@@ -72,4 +74,6 @@ contract Pool is IPool, ReentrancyGuard {
             lastUpdateTimestamp = block.timestamp;
         }
     }
+
+    function _borrow(uint256 amount_) private {}
 }
