@@ -8,6 +8,10 @@ interface IMockAMMPool {
 
     error OnlyPool();
 
+    event Deposited(address indexed account, uint256 amount);
+
+    event Withdrew(address indexed account, uint256 amount);
+
     function deposit(uint256 amount_) external;
 
     function withdraw(uint256 amount_) external;

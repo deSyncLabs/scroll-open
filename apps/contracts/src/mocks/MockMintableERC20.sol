@@ -8,22 +8,27 @@ import {IMintableERC20} from "../interfaces/IMintableERC20.sol";
 
 contract MockMintableERC20 is IMintableERC20, ERC20, AccessControl {
     bytes32 public constant MINTER_BURNER_ROLE = keccak256("MINTER_BURNER_ROLE");
+    bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
 
     address public ammPool;
+
+    uint256 private _mintAmount;
     mapping(address => uint256) private _lastMintedTimestamp;
 
-    constructor(string memory name_, string memory symbol_, address ammPool_) ERC20(name_, symbol_) {
-        ammPool = ammPool_;
-        grantRole(MINTER_BURNER_ROLE, ammPool_);
+    constructor(string memory name_, string memory symbol_, uint256 mintAmount_, address owner_)
+        ERC20(name_, symbol_)
+    {
+        _mintAmount = mintAmount_;
+        grantRole(OWNER_ROLE, owner_);
     }
 
-    function mint(uint256 amount_) external override {
+    function mint() external override {
         uint256 timeElapsed = block.timestamp - _lastMintedTimestamp[_msgSender()];
         if (timeElapsed < 1 days) {
             revert CanMintOnlyOncePerDay(_lastMintedTimestamp[_msgSender()], timeElapsed);
         }
 
-        super._mint(_msgSender(), amount_);
+        super._mint(_msgSender(), _mintAmount);
     }
 
     function _mint_(address account_, uint256 amount_) external override onlyRole(MINTER_BURNER_ROLE) {
@@ -32,6 +37,14 @@ contract MockMintableERC20 is IMintableERC20, ERC20, AccessControl {
 
     function _burn_(address account_, uint256 amount_) external override onlyRole(MINTER_BURNER_ROLE) {
         super._burn(account_, amount_);
+    }
+
+    function _addMinterBurner(address account_) external override onlyRole(OWNER_ROLE) {
+        grantRole(MINTER_BURNER_ROLE, account_);
+    }
+
+    function _setAmmPool(address ammPool_) external override onlyRole(OWNER_ROLE) {
+        ammPool = ammPool_;
     }
 
     function lastMintedTimestamp(address account_) external view override returns (uint256) {

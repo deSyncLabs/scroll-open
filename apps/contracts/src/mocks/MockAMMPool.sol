@@ -63,7 +63,7 @@ contract MockAMMPool is IMockAMMPool, Ownable {
     function _update() private {
         uint256 timeElapsed = block.timestamp - _lastUpdateTimestamp;
         uint256 interestEarned = (token.balanceOf(address(this)) * interestRatePerSecond * timeElapsed) / 1e18;
-        token.mint(address(this), interestEarned);
+        token._mint_(address(this), interestEarned);
 
         _lastUpdateTimestamp = block.timestamp;
     }
