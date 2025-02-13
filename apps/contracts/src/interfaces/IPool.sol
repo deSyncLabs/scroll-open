@@ -8,6 +8,8 @@ import {IDebtToken} from "./IDebtToken.sol";
 interface IPool {
     error OnlyDEToken();
 
+    error OnlyController();
+
     event UnlockIntentPosted(address indexed account, uint256 indexed amount, uint256 timestamp);
 
     event Withdrawn(address indexed account, uint256 indexed amount, uint256 timestamp);
@@ -18,7 +20,7 @@ interface IPool {
 
     function withdraw() external;
 
-    function borrow(uint256 amount) external;
+    function _borrow(address account_, uint256 amount) external;
 
     function updateLiquidityIndex() external;
 
@@ -34,5 +36,15 @@ interface IPool {
 
     function debtToken() external view returns (IDebtToken);
 
+    function controller() external view returns (address);
+
     function unlocked(address account) external view returns (uint256);
+
+    function collateralOf(address account) external view returns (uint256);
+
+    function collateralOfInUSD(address account) external view returns (uint256);
+
+    function debtOf(address account) external view returns (uint256);
+
+    function debtOfInUSD(address account) external view returns (uint256);
 }

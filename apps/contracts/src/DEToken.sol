@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {RayMath} from "lib/RayMath.sol";
 import {IDEToken} from "./interfaces/IDEToken.sol";
@@ -28,11 +29,17 @@ contract DEToken is IDEToken, ERC20, ReentrancyGuard {
         pool = IPool(pool_);
     }
 
-    function balanceOf(address account) public view override returns (uint256) {
+    function balanceOf(address account) public view override(ERC20, IERC20) returns (uint256) {
         return super.balanceOf(account) * pool.liquidityIndex() / RayMath.RAY;
     }
 
-    function transfer(address to_, uint256 value_) public override updateLiquidityIndex nonReentrant returns (bool) {
+    function transfer(address to_, uint256 value_)
+        public
+        override(ERC20, IERC20)
+        updateLiquidityIndex
+        nonReentrant
+        returns (bool)
+    {
         uint256 scaledValue = (value_ * RayMath.RAY + pool.liquidityIndex() - 1) / pool.liquidityIndex();
         super.transfer(to_, scaledValue);
 
@@ -41,7 +48,7 @@ contract DEToken is IDEToken, ERC20, ReentrancyGuard {
 
     function transferFrom(address from_, address to_, uint256 value_)
         public
-        override
+        override(ERC20, IERC20)
         updateLiquidityIndex
         nonReentrant
         returns (bool)
