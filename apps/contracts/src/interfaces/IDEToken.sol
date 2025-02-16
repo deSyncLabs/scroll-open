@@ -9,4 +9,6 @@ interface IDEToken is IERC20 {
     function mint(address account, uint256 amount) external;
 
     function burn(address account, uint256 amount) external;
+
+    function _poolTransfer(address from, address to, uint256 amount) external;
 }

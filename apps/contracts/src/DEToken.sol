@@ -68,4 +68,9 @@ contract DEToken is IDEToken, ERC20, ReentrancyGuard {
         uint256 scaledValue = (value_ * RayMath.RAY + pool.liquidityIndex() - 1) / pool.liquidityIndex();
         _burn(from_, scaledValue);
     }
+
+    function _poolTransfer(address from_, address to_, uint256 value_) public override onlyPool nonReentrant {
+        uint256 scaledValue = (value_ * RayMath.RAY + pool.liquidityIndex() - 1) / pool.liquidityIndex();
+        _transfer(from_, to_, scaledValue);
+    }
 }

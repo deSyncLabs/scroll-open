@@ -13,6 +13,7 @@ import {DebtToken} from "./DebtToken.sol";
 import {IPool} from "./interfaces/IPool.sol";
 import {IDEToken} from "./interfaces/IDEToken.sol";
 import {IDebtToken} from "./interfaces/IDebtToken.sol";
+import {IController} from "./interfaces/IController.sol";
 
 contract Pool is IPool, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -21,7 +22,7 @@ contract Pool is IPool, ReentrancyGuard {
     IERC20 public token;
     IDEToken public deToken;
     IDebtToken public debtToken;
-    address public controller;
+    IController public controller;
 
     uint256 public liquidityIndex;
     uint256 public interestRatePerSecond;
@@ -40,7 +41,7 @@ contract Pool is IPool, ReentrancyGuard {
     }
 
     modifier onlyController() {
-        if (msg.sender != controller) {
+        if (msg.sender != address(controller)) {
             revert OnlyController();
         }
 
@@ -57,7 +58,7 @@ contract Pool is IPool, ReentrancyGuard {
         token = IERC20(token_);
         deToken = new DEToken(deName, deSymbol, address(this));
         debtToken = new DebtToken(debtName, debtSymbol, address(this));
-        controller = controller_;
+        controller = IController(controller_);
 
         liquidityIndex = RayMath.RAY;
         interestRatePerSecond = apy_ / 365 days;
@@ -87,6 +88,24 @@ contract Pool is IPool, ReentrancyGuard {
     function _borrow(address account_, uint256 amount_) external override onlyController {
         debtToken.mint(account_, amount_);
         token.safeTransfer(account_, amount_);
+    }
+
+    function _liquidate(address account_, address receiver_) external override onlyController {
+        uint256 debt = debtToken.balanceOf(account_);
+        uint256 collateral = deToken.balanceOf(account_);
+
+        token.safeTransferFrom(receiver_, address(this), collateral);
+        deToken._poolTransfer(account_, receiver_, collateral);
+        debtToken.burn(account_, debt);
+
+        emit Liquidated(account_, receiver_, debt, block.timestamp);
+    }
+
+    function repay(address token_, uint256 amount_) external override {
+        IERC20(token_).safeTransferFrom(msg.sender, address(this), amount_);
+        debtToken.burn(msg.sender, amount_);
+
+        emit Repaid(msg.sender, token_, amount_, block.timestamp);
     }
 
     function updateLiquidityIndex() external override {
@@ -128,5 +147,9 @@ contract Pool is IPool, ReentrancyGuard {
         uint256 p = answer.toUint256();
 
         return (b * p * 1e18) / (10 ** (tokenDecimals + chainlinkDecimals));
+    }
+
+    function chainlinkPriceFeed() external view override returns (address) {
+        return address(_chainlinkPriceFeed);
     }
 }
