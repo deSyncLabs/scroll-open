@@ -11,7 +11,13 @@ interface IPool {
 
     error OnlyController();
 
+    error NoAmountUnlocked();
+
+    error InsufficientUnlockIntent(uint256 unlocked_, uint256 amount_);
+
     event UnlockIntentPosted(address indexed account, uint256 indexed amount, uint256 timestamp);
+
+    event Unlocked(address indexed account, uint256 indexed amount, uint256 timestamp);
 
     event Deposit(address indexed account, uint256 indexed amount, uint256 timestamp);
 
@@ -26,6 +32,8 @@ interface IPool {
     function deposit(uint256 amount) external;
 
     function unlock(uint256 amount) external;
+
+    function _unlock(address account_, uint256 amount) external;
 
     function withdraw() external;
 

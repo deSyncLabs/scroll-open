@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.20;
 
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -15,7 +16,7 @@ import {IDEToken} from "./interfaces/IDEToken.sol";
 import {IDebtToken} from "./interfaces/IDebtToken.sol";
 import {IController} from "./interfaces/IController.sol";
 
-contract Pool is IPool, ReentrancyGuard {
+contract Pool is IPool, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
     using SafeCast for int256;
 
@@ -30,15 +31,8 @@ contract Pool is IPool, ReentrancyGuard {
 
     AggregatorV3Interface private _chainlinkPriceFeed;
 
+    mapping(address => uint256) public unlockIntents;
     mapping(address => uint256) public unlocked;
-
-    modifier onlyDEToken() {
-        if (msg.sender != address(deToken)) {
-            revert OnlyDEToken();
-        }
-
-        _;
-    }
 
     modifier onlyController() {
         if (msg.sender != address(controller)) {
@@ -48,7 +42,7 @@ contract Pool is IPool, ReentrancyGuard {
         _;
     }
 
-    constructor(address token_, uint256 apy_, address controller_) {
+    constructor(address token_, uint256 apy_, address controller_, address owner_) Ownable(owner_) {
         string memory deName = string.concat("deSync ", IERC20Metadata(token_).name());
         string memory deSymbol = string.concat("de", IERC20Metadata(token_).symbol());
 
@@ -66,18 +60,35 @@ contract Pool is IPool, ReentrancyGuard {
     }
 
     function deposit(uint256 amount_) external override nonReentrant {
+        token.safeTransferFrom(msg.sender, address(this), amount_);
         deToken.mint(msg.sender, amount_);
     }
 
     function unlock(uint256 amount_) external override nonReentrant {
+        unlockIntents[msg.sender] += amount_;
         deToken.burn(msg.sender, amount_);
-        unlocked[msg.sender] += amount_;
 
         emit UnlockIntentPosted(msg.sender, amount_, block.timestamp);
     }
 
+    function _unlock(address account_, uint256 amount_) external override onlyOwner {
+        if (unlockIntents[account_] < amount_) {
+            revert InsufficientUnlockIntent(unlockIntents[account_], amount_);
+        }
+
+        unlocked[account_] += amount_;
+        unlockIntents[account_] -= amount_;
+
+        emit Unlocked(account_, amount_, block.timestamp);
+    }
+
     function withdraw() external override nonReentrant {
         uint256 amount = unlocked[msg.sender];
+
+        if (amount == 0) {
+            revert NoAmountUnlocked();
+        }
+
         unlocked[msg.sender] = 0;
 
         token.safeTransfer(msg.sender, amount);

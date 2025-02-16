@@ -31,7 +31,7 @@ contract Controller is IController, Ownable {
             revert PoolAlreadyExists();
         }
 
-        _pools[token_] = new Pool(token_, apy_, address(this));
+        _pools[token_] = new Pool(token_, apy_, address(this), msg.sender);
         _poolList.push(_pools[token_]);
 
         emit PoolAdded(token_, address(_pools[token_]), block.timestamp);
