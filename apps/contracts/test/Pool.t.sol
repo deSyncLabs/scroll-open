@@ -33,6 +33,7 @@ contract PoolTest is Test {
 
         token.transfer(alice, 1000 * 1e18);
         token.transfer(bob, 1000 * 1e18);
+        token.transfer(address(pool), 1000 * 1e18);
         vm.stopPrank();
 
         vm.prank(owner);
@@ -89,6 +90,7 @@ contract PoolTest is Test {
         pool.deposit(100 * 1e18);
 
         vm.warp(block.timestamp + 1 days);
+        pool.updateLiquidityIndex();
 
         uint256 interestPerSecond = interestRate / 365 days;
         uint256 collectedInterest = 1 days * interestPerSecond * 100 * 1e18 / 1e27;
@@ -96,13 +98,20 @@ contract PoolTest is Test {
         pool.deposit(200 * 1e18);
 
         vm.warp(block.timestamp + 1 days);
+        pool.updateLiquidityIndex();
 
-        uint256 collectedInterest2 = 1 days * interestPerSecond * 300 * 1e18 / 1e27;
+        uint256 intermediateTotal = 100 * 1e18 + collectedInterest + 200 * 1e18;
+        uint256 collectedInterest2 = 1 days * interestPerSecond * intermediateTotal / 1e27;
 
         pool.deposit(400 * 1e18);
         vm.stopPrank();
 
-        assertGt(IERC20(deTokenAddress).balanceOf(alice), 700 * 1e18 + collectedInterest + collectedInterest2);
+        /* Expected final balance is the sum of:
+         - Deposits: 100 + 200 + 400 = 700 tokens,
+         - Plus the interest accrued over both periods. */
+        uint256 expectedFinal = (700 * 1e18 + collectedInterest + collectedInterest2) + 1;
+
+        assertEq(IERC20(deTokenAddress).balanceOf(alice), expectedFinal);
     }
 
     function test_unlockAmountStep1() public {
@@ -287,5 +296,90 @@ contract PoolTest is Test {
 
         uint256 intent = pool.unlockIntents(alice);
         assertEq(intent, unlockAmount);
+    }
+
+    function testFuzzWithdraw(uint256 depositAmount, uint256 unlockAmount) public {
+        vm.assume(depositAmount > 0 && depositAmount <= 1000 * 1e18);
+        vm.assume(unlockAmount > 0 && unlockAmount <= depositAmount);
+
+        uint256 initialBalance = token.balanceOf(alice);
+
+        vm.startPrank(alice);
+        pool.deposit(depositAmount);
+        pool.unlock(unlockAmount);
+        vm.stopPrank();
+
+        vm.prank(owner);
+        pool._unlock(alice, unlockAmount);
+
+        vm.prank(alice);
+        pool.withdraw();
+
+        uint256 finalBalance = token.balanceOf(alice);
+
+        assertEq(finalBalance, initialBalance - (depositAmount - unlockAmount));
+        assertEq(pool.unlocked(alice), 0);
+    }
+
+    function testFuzzBorrowAndRepay(uint256 borrowAmount, uint256 repayAmount) public {
+        vm.assume(borrowAmount > 0 && borrowAmount <= 1000 * 1e18);
+        vm.assume(repayAmount <= borrowAmount);
+
+        vm.prank(deployer);
+        pool._borrow(alice, borrowAmount);
+        uint256 debt = pool.debtOf(alice);
+        assertEq(debt, borrowAmount);
+
+        vm.prank(alice);
+        pool.repay(address(token), repayAmount);
+        uint256 remainingDebt = pool.debtOf(alice);
+        assertEq(remainingDebt, borrowAmount - repayAmount);
+    }
+
+    function testFuzzUpdateLiquidityIndex(uint256 timeWarp) public {
+        vm.assume(timeWarp > 0 && timeWarp < 365 days);
+
+        uint256 initialIndex = pool.liquidityIndex();
+        vm.warp(block.timestamp + timeWarp);
+        pool.updateLiquidityIndex();
+        uint256 newIndex = pool.liquidityIndex();
+        assertGt(newIndex, initialIndex);
+    }
+
+    function testFuzzInsufficientUnlock(uint256 depositAmount, uint256 unlockAmount, uint256 extra) public {
+        vm.assume(depositAmount > 0 && depositAmount <= 1000 * 1e18);
+        vm.assume(unlockAmount <= depositAmount);
+        vm.assume(extra > 0);
+
+        vm.startPrank(alice);
+        pool.deposit(depositAmount);
+        pool.unlock(unlockAmount);
+        vm.stopPrank();
+
+        vm.prank(owner);
+        vm.expectRevert();
+        pool._unlock(alice, unlockAmount + extra);
+    }
+
+    function testFuzzLiquidation(uint256 depositAmount, uint256 borrowAmount) public {
+        vm.assume(depositAmount > 0 && depositAmount <= 1000 * 1e18);
+        vm.assume(borrowAmount > 0 && borrowAmount <= 1000 * 1e18);
+
+        vm.prank(alice);
+        pool.deposit(depositAmount);
+
+        vm.prank(deployer);
+        pool._borrow(alice, borrowAmount);
+
+        uint256 bobInitialBalance = IERC20(deTokenAddress).balanceOf(bob);
+
+        vm.prank(deployer);
+        pool._liquidate(alice, bob);
+
+        assertEq(IERC20(deTokenAddress).balanceOf(alice), 0);
+        assertEq(pool.debtOf(alice), 0);
+
+        uint256 bobFinalBalance = IERC20(deTokenAddress).balanceOf(bob);
+        assertEq(bobFinalBalance, bobInitialBalance + depositAmount);
     }
 }
