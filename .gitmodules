@@ -7,3 +7,6 @@
 [submodule "apps/contracts/lib/foundry-chainlink-toolkit"]
 	path = apps/contracts/lib/foundry-chainlink-toolkit
 	url = https://github.com/smartcontractkit/foundry-chainlink-toolkit
+[submodule "apps/contracts-v2/lib/forge-std"]
+	path = apps/contracts-v2/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
