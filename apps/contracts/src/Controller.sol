@@ -18,7 +18,7 @@ contract Controller is IController, Ownable {
 
     uint256 public liquidationThreshold;
 
-    constructor(uint256 liquidationThreshold_) Ownable(msg.sender) {
+    constructor(uint256 liquidationThreshold_, address owner_) Ownable(owner_) {
         if (liquidationThreshold_ > 1e18) {
             revert LiquidationThresholdMustBeLessThan100();
         }

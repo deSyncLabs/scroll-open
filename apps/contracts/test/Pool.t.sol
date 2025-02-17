@@ -3,9 +3,9 @@ pragma solidity ^0.8.20;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {Test, console} from "forge-std/Test.sol";
-import {MockERC20} from "../src/mocks/MockERC20.sol";
-import {Pool} from "../src/Pool.sol";
+import {Test} from "forge-std/Test.sol";
+import {MockERC20} from "src/mocks/MockERC20.sol";
+import {Pool} from "src/Pool.sol";
 
 contract PoolTest is Test {
     address deployer;
@@ -19,12 +19,12 @@ contract PoolTest is Test {
     uint256 interestRate;
 
     function setUp() public {
-        interestRate = 0.1 * 1e27;
+        deployer = vm.addr(69420);
+        owner = vm.addr(42069);
+        alice = vm.addr(69);
+        bob = vm.addr(420);
 
-        deployer = vm.addr(0xBEEF);
-        owner = vm.addr(0xB055);
-        alice = vm.addr(0xA11CE);
-        bob = vm.addr(0xB0B);
+        interestRate = 0.1 * 1e27;
 
         vm.startPrank(deployer);
         token = new MockERC20("MockToken", "MTK");

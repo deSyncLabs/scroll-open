@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IMintableERC20} from "../interfaces/IMintableERC20.sol";
+import {IMintableERC20} from "src/interfaces/IMintableERC20.sol";
 
 contract MockMintableERC20 is IMintableERC20, ERC20, AccessControl {
     bytes32 public constant MINTER_BURNER_ROLE = keccak256("MINTER_BURNER_ROLE");

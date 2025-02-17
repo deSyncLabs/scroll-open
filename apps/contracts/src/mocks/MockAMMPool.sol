@@ -3,8 +3,8 @@ pragma solidity ^0.8.20;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IMockAMMPool} from "../interfaces/IMockAMMPool.sol";
-import {IMintableERC20} from "../interfaces/IMintableERC20.sol";
+import {IMockAMMPool} from "src/interfaces/IMockAMMPool.sol";
+import {IMintableERC20} from "src/interfaces/IMintableERC20.sol";
 
 contract MockAMMPool is IMockAMMPool, Ownable {
     using SafeERC20 for IMintableERC20;
