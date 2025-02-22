@@ -15,3 +15,8 @@
 	url = https://github.com/Uniswap/v3-core
 [submodule "lib/v3-core"]
 	branch = 0.8
+[submodule "apps/contracts/lib/v3-periphery"]
+	path = apps/contracts/lib/v3-periphery
+	url = https://github.com/Uniswap/v3-periphery
+[submodule "lib/v3-periphery"]
+	branch = 0.8
