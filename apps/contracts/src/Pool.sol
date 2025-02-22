@@ -16,7 +16,7 @@ import {IDEToken} from "./interfaces/IDEToken.sol";
 import {IDebtToken} from "./interfaces/IDebtToken.sol";
 import {IController} from "./interfaces/IController.sol";
 
-contract Pool is IPool, ReentrancyGuard, Ownable {
+abstract contract Pool is IPool, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
     using SafeCast for int256;
 
@@ -62,6 +62,8 @@ contract Pool is IPool, ReentrancyGuard, Ownable {
     function deposit(uint256 amount_) external override nonReentrant {
         token.safeTransferFrom(msg.sender, address(this), amount_);
         deToken.mint(msg.sender, amount_);
+
+        _stratergy();
     }
 
     function unlock(uint256 amount_) external override nonReentrant {
@@ -127,6 +129,8 @@ contract Pool is IPool, ReentrancyGuard, Ownable {
             lastUpdateTimestamp = block.timestamp;
         }
     }
+
+    function _stratergy() internal virtual;
 
     function collateralOf(address account_) external view override returns (uint256) {
         return deToken.balanceOf(account_);
