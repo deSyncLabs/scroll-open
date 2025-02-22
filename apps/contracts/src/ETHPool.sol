@@ -27,11 +27,9 @@ contract ETHPool is Pool, IERC721Receiver {
         address token1_,
         address ammPool_,
         uint24 poolFee_,
-        address nonfungiblePositionManager_,
-        address factory_,
-        address WETH9_
+        address nonfungiblePositionManager_
 
-    ) Pool(token_, apy_, controller_, owner_), PeripheryImmutableState(_factory, _WETH9) {
+    ) Pool(token_, apy_, controller_, owner_)  {
         _token0 = token0_;
         _token1 = token1_;
 
