@@ -15,5 +15,11 @@
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.66.5",
+    "connectkit": "^1.8.2",
+    "viem": "^2.23.2",
+    "wagmi": "^2.14.11"
   }
 }
