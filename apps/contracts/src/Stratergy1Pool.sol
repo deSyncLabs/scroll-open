@@ -1,0 +1,180 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity ^0.8.20;
+
+import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import {TickMath} from "@uniswap/v3-core/contracts/libraries/TickMath.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import {INonfungiblePositionManager} from "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
+import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
+import {LiquidityManagement} from "@uniswap/v3-periphery/contracts/base/LiquidityManagement.sol";
+import {Pool} from "./Pool.sol";
+
+contract Stratergy1Pool is Pool, IERC721Receiver {
+    using TransferHelper for address;
+
+    address private _token0;
+    address private _token1;
+
+    uint24 private _poolFee;
+    uint256 private _tokenId;
+    uint128 private _liquidity;
+
+    INonfungiblePositionManager private _nonfungiblePositionManager;
+    ISwapRouter private _swapRouter;
+
+    struct Deposit {
+        address owner;
+        uint128 liquidity;
+        address token0;
+        address token1;
+    }
+
+    constructor(
+        address token_,
+        uint256 apy_,
+        address controller_,
+        address owner_,
+        address token1_,
+        uint24 poolFee_,
+        address nonfungiblePositionManager_,
+        address swapRouter_
+    ) Pool(token_, apy_, controller_, owner_) {
+        _token0 = token_;
+        _token1 = token1_;
+
+        _poolFee = poolFee_;
+
+        _nonfungiblePositionManager = INonfungiblePositionManager(nonfungiblePositionManager_);
+        _swapRouter = ISwapRouter(swapRouter_);
+    }
+
+    function _stratergy() internal override {
+        if (_tokenId == 0) {
+            _swapHalfForOther(IERC20(_token0).balanceOf(address(this)));
+
+            (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1) =
+                _mintNeAMMPosition(IERC20(_token0).balanceOf(address(this)), IERC20(_token1).balanceOf(address(this)));
+
+            _tokenId = tokenId;
+            _liquidity = liquidity;
+        } else {
+            _swapHalfForOther(IERC20(_token0).balanceOf(address(this)));
+
+            (uint256 amount0, uint256 amount1) = _collectAllAMMFees(_tokenId);
+
+            uint256 amount0ToMint = IERC20(_token0).balanceOf(address(this)) + amount0;
+            uint256 amount1ToMint = IERC20(_token1).balanceOf(address(this)) + amount1;
+
+            uint128 liquidity;
+            (liquidity, amount0, amount1) = _increaseLiquidity(_tokenId, amount0ToMint, amount1ToMint);
+
+            _liquidity = liquidity;
+        }
+    }
+
+    function _mintNeAMMPosition(uint256 amount0ToMint, uint256 amount1ToMint)
+        private
+        returns (uint256, uint128, uint256, uint256)
+    {
+        _token0.safeApprove(address(_nonfungiblePositionManager), amount0ToMint);
+        _token1.safeApprove(address(_nonfungiblePositionManager), amount1ToMint);
+
+        INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager.MintParams({
+            token0: _token0,
+            token1: _token1,
+            fee: _poolFee,
+            tickLower: TickMath.MIN_TICK,
+            tickUpper: TickMath.MAX_TICK,
+            amount0Desired: amount0ToMint,
+            amount1Desired: amount1ToMint,
+            amount0Min: 0,
+            amount1Min: 0,
+            recipient: address(this),
+            deadline: block.timestamp
+        });
+
+        (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1) =
+            _nonfungiblePositionManager.mint(params);
+
+        _token0.safeApprove(address(_nonfungiblePositionManager), 0);
+        _token1.safeApprove(address(_nonfungiblePositionManager), 0);
+
+        return (tokenId, liquidity, amount0, amount1);
+    }
+
+    function _increaseLiquidity(uint256 tokenId_, uint256 amountAdd0_, uint256 amountAdd1_)
+        private
+        returns (uint128, uint256, uint256)
+    {
+        _token0.safeApprove(address(_nonfungiblePositionManager), amountAdd0_);
+        _token1.safeApprove(address(_nonfungiblePositionManager), amountAdd1_);
+
+        INonfungiblePositionManager.IncreaseLiquidityParams memory params = INonfungiblePositionManager
+            .IncreaseLiquidityParams({
+            tokenId: tokenId_,
+            amount0Desired: amountAdd0_,
+            amount1Desired: amountAdd1_,
+            amount0Min: 0,
+            amount1Min: 0,
+            deadline: block.timestamp
+        });
+
+        (uint128 liquidity, uint256 amount0, uint256 amount1) = _nonfungiblePositionManager.increaseLiquidity(params);
+
+        _token0.safeApprove(address(_nonfungiblePositionManager), 0);
+        _token1.safeApprove(address(_nonfungiblePositionManager), 0);
+
+        return (liquidity, amount0, amount1);
+    }
+
+    function _decreaseLiquidity(uint256 tokenId_, uint128 liquidity_) private returns (uint256, uint256) {
+        INonfungiblePositionManager.DecreaseLiquidityParams memory params = INonfungiblePositionManager
+            .DecreaseLiquidityParams({
+            tokenId: tokenId_,
+            liquidity: liquidity_,
+            amount0Min: 0,
+            amount1Min: 0,
+            deadline: block.timestamp
+        });
+
+        (uint256 amount0, uint256 amount1) = _nonfungiblePositionManager.decreaseLiquidity(params);
+
+        return (amount0, amount1);
+    }
+
+    function _collectAllAMMFees(uint256 tokenId_) private returns (uint256, uint256) {
+        INonfungiblePositionManager.CollectParams memory params = INonfungiblePositionManager.CollectParams({
+            tokenId: tokenId_,
+            recipient: address(this),
+            amount0Max: type(uint128).max,
+            amount1Max: type(uint128).max
+        });
+
+        (uint256 amount0, uint256 amount1) = _nonfungiblePositionManager.collect(params);
+
+        return (amount0, amount1);
+    }
+
+    function _swapHalfForOther(uint256 amount0_) private returns (uint256) {
+        _token0.safeApprove(address(_swapRouter), amount0_);
+
+        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
+            tokenIn: _token0,
+            tokenOut: _token1,
+            fee: _poolFee,
+            recipient: address(this),
+            deadline: block.timestamp,
+            amountIn: amount0_ / 2,
+            amountOutMinimum: 0,
+            sqrtPriceLimitX96: 0
+        });
+
+        uint256 amountOut = _swapRouter.exactInputSingle(params);
+
+        _token0.safeApprove(address(_swapRouter), 0);
+
+        return amountOut;
+    }
+}

@@ -19,7 +19,7 @@ interface IPool {
 
     event Unlocked(address indexed account, uint256 indexed amount, uint256 timestamp);
 
-    event Deposit(address indexed account, uint256 indexed amount, uint256 timestamp);
+    event Deposited(address indexed account, uint256 indexed amount, uint256 timestamp);
 
     event Withdrawn(address indexed account, uint256 indexed amount, uint256 timestamp);
 
