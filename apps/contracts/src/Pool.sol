@@ -32,7 +32,10 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
     AggregatorV3Interface private _chainlinkPriceFeed;
 
     mapping(address => uint256) public unlockIntents;
-    mapping(address => uint256) public unlocked;
+
+    uint256 private _totalUnlockedIntents;
+    uint256 private _totalUnlocked;
+    bool public locked;
 
     modifier onlyController() {
         if (msg.sender != address(controller)) {
@@ -57,41 +60,56 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
         liquidityIndex = RayMath.RAY;
         interestRatePerSecond = apy_ / 365 days;
         lastUpdateTimestamp = block.timestamp;
+
+        _totalUnlockedIntents = 0;
+        _totalUnlocked = 0;
+        locked = false;
     }
 
     function deposit(uint256 amount_) external override nonReentrant {
         token.safeTransferFrom(msg.sender, address(this), amount_);
         deToken.mint(msg.sender, amount_);
 
-        _stratergy();
+        emit Deposited(msg.sender, amount_, block.timestamp);
     }
 
     function unlock(uint256 amount_) external override nonReentrant {
         unlockIntents[msg.sender] += amount_;
         deToken.burn(msg.sender, amount_);
 
+        _totalUnlockedIntents += amount_;
+
         emit UnlockIntentPosted(msg.sender, amount_, block.timestamp);
     }
 
-    function _unlock(address account_, uint256 amount_) external override onlyOwner {
-        if (unlockIntents[account_] < amount_) {
-            revert InsufficientUnlockIntent(unlockIntents[account_], amount_);
+    function _lock() external override onlyOwner {
+        if (locked) {
+            revert AlreadyLocked();
         }
 
-        unlocked[account_] += amount_;
-        unlockIntents[account_] -= amount_;
+        locked = true;
 
-        emit Unlocked(account_, amount_, block.timestamp);
+        emit Locked(block.timestamp);
+    }
+
+    function _unlock() external override onlyOwner {
+        if (!locked) {
+            revert AlreadyUnlocked();
+        }
+
+        locked = false;
     }
 
     function withdraw() external override nonReentrant {
-        uint256 amount = unlocked[msg.sender];
+        uint256 amount = unlockIntents[msg.sender];
 
         if (amount == 0) {
             revert NoAmountUnlocked();
         }
 
-        unlocked[msg.sender] = 0;
+        if (locked) {
+            revert PoolLocked();
+        }
 
         token.safeTransfer(msg.sender, amount);
 
@@ -129,8 +147,6 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
             lastUpdateTimestamp = block.timestamp;
         }
     }
-
-    function _stratergy() internal virtual;
 
     function collateralOf(address account_) external view override returns (uint256) {
         return deToken.balanceOf(account_);

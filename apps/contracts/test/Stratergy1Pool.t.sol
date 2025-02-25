@@ -5,7 +5,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {Test} from "forge-std/Test.sol";
 import {MockERC20} from "src/mocks/MockERC20.sol";
-import {Pool} from "src/Pool.sol";
+import {IPool} from "src/interfaces/IPool.sol";
+import {Stratergy1Pool} from "src/Stratergy1Pool.sol";
 
 contract PoolTest is Test {
     address deployer;
@@ -14,7 +15,7 @@ contract PoolTest is Test {
     address bob;
 
     MockERC20 token;
-    Pool pool;
+    IPool pool;
     address deTokenAddress;
     uint256 interestRate;
 
@@ -28,7 +29,7 @@ contract PoolTest is Test {
 
         vm.startPrank(deployer);
         token = new MockERC20("MockToken", "MTK");
-        pool = new Pool(address(token), interestRate, deployer, owner); // 10% -> 0.10 -> to Ray -> 0.1 * 1e27 -> 1e26
+        pool = new Stratergy1Pool(address(token), interestRate, deployer, owner); // 10% -> 0.10 -> to Ray -> 0.1 * 1e27 -> 1e26
         deTokenAddress = address(pool.deToken());
 
         token.transfer(alice, 1000 * 1e18);

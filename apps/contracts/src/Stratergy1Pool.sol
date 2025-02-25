@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.20;
 
-import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {TickMath} from "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import {INonfungiblePositionManager} from "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
-import {LiquidityManagement} from "@uniswap/v3-periphery/contracts/base/LiquidityManagement.sol";
 import {Pool} from "./Pool.sol";
 
 contract Stratergy1Pool is Pool, IERC721Receiver {
@@ -23,6 +21,9 @@ contract Stratergy1Pool is Pool, IERC721Receiver {
 
     INonfungiblePositionManager private _nonfungiblePositionManager;
     ISwapRouter private _swapRouter;
+
+    uint256 public lastExecutionTimestamp;
+    bool public isStratergyActive;
 
     struct Deposit {
         address owner;
@@ -50,28 +51,57 @@ contract Stratergy1Pool is Pool, IERC721Receiver {
         _swapRouter = ISwapRouter(swapRouter_);
     }
 
-    function _stratergy() internal override {
-        if (_tokenId == 0) {
-            _swapHalfForOther(IERC20(_token0).balanceOf(address(this)));
+    function executeStratergy() external override onlyOwner {
+        if (isStratergyActive) {
+            revert StratergyAlreadyActive();
+        }
 
-            (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1) =
+        if (block.timestamp - lastExecutionTimestamp < 1 days) {
+            revert StratergyExecutionInterval();
+        }
+
+        if (_tokenId == 0) {
+            _swapHalfForToken1(IERC20(_token0).balanceOf(address(this)));
+
+            (uint256 tokenId, uint128 liquidity,,) =
                 _mintNeAMMPosition(IERC20(_token0).balanceOf(address(this)), IERC20(_token1).balanceOf(address(this)));
 
             _tokenId = tokenId;
             _liquidity = liquidity;
         } else {
-            _swapHalfForOther(IERC20(_token0).balanceOf(address(this)));
+            _swapHalfForToken1(IERC20(_token0).balanceOf(address(this)));
 
             (uint256 amount0, uint256 amount1) = _collectAllAMMFees(_tokenId);
 
             uint256 amount0ToMint = IERC20(_token0).balanceOf(address(this)) + amount0;
             uint256 amount1ToMint = IERC20(_token1).balanceOf(address(this)) + amount1;
 
-            uint128 liquidity;
-            (liquidity, amount0, amount1) = _increaseLiquidity(_tokenId, amount0ToMint, amount1ToMint);
+            (uint128 liquidity,,) = _increaseLiquidity(_tokenId, amount0ToMint, amount1ToMint);
 
             _liquidity = liquidity;
         }
+
+        lastExecutionTimestamp = block.timestamp;
+        isStratergyActive = true;
+
+        emit StartedStratergy(block.timestamp);
+    }
+
+    function unexecuteStratergy() external override onlyOwner {
+        if (!isStratergyActive) {
+            revert StratergyNotActive();
+        }
+
+        if (_tokenId == 0) {
+            revert StratergyNotInitialized();
+        }
+
+        _decreaseLiquidity(_tokenId, _liquidity);
+        _liquidity = 0;
+
+        _swapEverythingForToken0();
+
+        emit StoppedStratergy(block.timestamp);
     }
 
     function _mintNeAMMPosition(uint256 amount0ToMint, uint256 amount1ToMint)
@@ -157,7 +187,7 @@ contract Stratergy1Pool is Pool, IERC721Receiver {
         return (amount0, amount1);
     }
 
-    function _swapHalfForOther(uint256 amount0_) private returns (uint256) {
+    function _swapHalfForToken1(uint256 amount0_) private returns (uint256) {
         _token0.safeApprove(address(_swapRouter), amount0_);
 
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
@@ -176,5 +206,30 @@ contract Stratergy1Pool is Pool, IERC721Receiver {
         _token0.safeApprove(address(_swapRouter), 0);
 
         return amountOut;
+    }
+
+    function _swapEverythingForToken0() private returns (uint256) {
+        _token1.safeApprove(address(_swapRouter), IERC20(_token1).balanceOf(address(this)));
+
+        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
+            tokenIn: _token1,
+            tokenOut: _token0,
+            fee: _poolFee,
+            recipient: address(this),
+            deadline: block.timestamp,
+            amountIn: IERC20(_token1).balanceOf(address(this)),
+            amountOutMinimum: 0,
+            sqrtPriceLimitX96: 0
+        });
+
+        uint256 amountOut = _swapRouter.exactInputSingle(params);
+
+        _token1.safeApprove(address(_swapRouter), 0);
+
+        return amountOut;
+    }
+
+    function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
+        return this.onERC721Received.selector;
     }
 }

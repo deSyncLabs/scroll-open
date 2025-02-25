@@ -15,9 +15,23 @@ interface IPool {
 
     error InsufficientUnlockIntent(uint256 unlocked_, uint256 amount_);
 
+    error StratergyAlreadyActive();
+
+    error AlreadyLocked();
+
+    error AlreadyUnlocked();
+
+    error StratergyNotActive();
+
+    error StratergyExecutionInterval();
+
+    error StratergyNotInitialized();
+
+    error PoolLocked();
+
     event UnlockIntentPosted(address indexed account, uint256 indexed amount, uint256 timestamp);
 
-    event Unlocked(address indexed account, uint256 indexed amount, uint256 timestamp);
+    event Unlocked(uint256 indexed timestamp);
 
     event Deposited(address indexed account, uint256 indexed amount, uint256 timestamp);
 
@@ -29,11 +43,19 @@ interface IPool {
 
     event Repaid(address indexed account, address indexed token, uint256 indexed amount, uint256 timestamp);
 
+    event StartedStratergy(uint256 indexed timestamp);
+
+    event StoppedStratergy(uint256 indexed timestamp);
+
+    event Locked(uint256 indexed timestamp);
+
     function deposit(uint256 amount) external;
 
     function unlock(uint256 amount) external;
 
-    function _unlock(address account_, uint256 amount) external;
+    function _unlock() external;
+
+    function _lock() external;
 
     function withdraw() external;
 
@@ -44,6 +66,10 @@ interface IPool {
     function repay(address token_, uint256 amount_) external;
 
     function updateLiquidityIndex() external;
+
+    function executeStratergy() external;
+
+    function unexecuteStratergy() external;
 
     function liquidityIndex() external view returns (uint256);
 
@@ -58,8 +84,6 @@ interface IPool {
     function debtToken() external view returns (IDebtToken);
 
     function controller() external view returns (IController);
-
-    function unlocked(address account) external view returns (uint256);
 
     function collateralOf(address account) external view returns (uint256);
 
