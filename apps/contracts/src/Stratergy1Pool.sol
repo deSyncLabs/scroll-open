@@ -8,6 +8,7 @@ import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRoute
 import {INonfungiblePositionManager} from "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import {Pool} from "./Pool.sol";
+import {IFuturesMarket} from "./interfaces/IFuturesMarket.sol";
 
 contract Stratergy1Pool is Pool, IERC721Receiver {
     using TransferHelper for address;
@@ -17,10 +18,12 @@ contract Stratergy1Pool is Pool, IERC721Receiver {
 
     uint24 private _poolFee;
     uint256 private _tokenId;
+    uint256 private _positionId;
     uint128 private _liquidity;
 
     INonfungiblePositionManager private _nonfungiblePositionManager;
     ISwapRouter private _swapRouter;
+    IFuturesMarket private _futuresMarket;
 
     uint256 public lastExecutionTimestamp;
     bool public isStratergyActive;
@@ -40,15 +43,20 @@ contract Stratergy1Pool is Pool, IERC721Receiver {
         address token1_,
         uint24 poolFee_,
         address nonfungiblePositionManager_,
-        address swapRouter_
+        address swapRouter_,
+        address futuresMarket_
     ) Pool(token_, apy_, controller_, owner_) {
         _token0 = token_;
         _token1 = token1_;
 
         _poolFee = poolFee_;
+        _tokenId = 0;
+        _positionId = 0;
+        _liquidity = 0;
 
         _nonfungiblePositionManager = INonfungiblePositionManager(nonfungiblePositionManager_);
         _swapRouter = ISwapRouter(swapRouter_);
+        _futuresMarket = IFuturesMarket(futuresMarket_);
     }
 
     function executeStratergy() external override onlyOwner {
@@ -60,26 +68,33 @@ contract Stratergy1Pool is Pool, IERC721Receiver {
             revert StratergyExecutionInterval();
         }
 
-        if (_tokenId == 0) {
-            _swapHalfForToken1(IERC20(_token0).balanceOf(address(this)));
+        uint256 amount0Provided;
 
-            (uint256 tokenId, uint128 liquidity,,) =
+        _swapHalfForToken1(IERC20(_token0).balanceOf(address(this)));
+
+        if (_tokenId == 0) {
+            (uint256 tokenId, uint128 liquidity, uint256 amount0,) =
                 _mintNeAMMPosition(IERC20(_token0).balanceOf(address(this)), IERC20(_token1).balanceOf(address(this)));
 
             _tokenId = tokenId;
             _liquidity = liquidity;
+            amount0Provided = amount0;
         } else {
-            _swapHalfForToken1(IERC20(_token0).balanceOf(address(this)));
-
             (uint256 amount0, uint256 amount1) = _collectAllAMMFees(_tokenId);
 
             uint256 amount0ToMint = IERC20(_token0).balanceOf(address(this)) + amount0;
             uint256 amount1ToMint = IERC20(_token1).balanceOf(address(this)) + amount1;
 
-            (uint128 liquidity,,) = _increaseLiquidity(_tokenId, amount0ToMint, amount1ToMint);
-
-            _liquidity = liquidity;
+            (_liquidity, amount0Provided,) = _increaseLiquidity(_tokenId, amount0ToMint, amount1ToMint);
         }
+
+        _token0.safeApprove(address(_futuresMarket), type(uint256).max);
+        _token1.safeApprove(address(_futuresMarket), type(uint256).max);
+
+        _positionId = _futuresMarket.openPosition(_token0, _token1, amount0Provided, false);
+
+        _token0.safeApprove(address(_futuresMarket), 0);
+        _token1.safeApprove(address(_futuresMarket), 0);
 
         lastExecutionTimestamp = block.timestamp;
         isStratergyActive = true;
@@ -99,7 +114,17 @@ contract Stratergy1Pool is Pool, IERC721Receiver {
         _decreaseLiquidity(_tokenId, _liquidity);
         _liquidity = 0;
 
+        _token0.safeApprove(address(_futuresMarket), type(uint256).max);
+        _token1.safeApprove(address(_futuresMarket), type(uint256).max);
+
+        _futuresMarket.closePosition(_positionId);
+
+        _token0.safeApprove(address(_futuresMarket), 0);
+        _token1.safeApprove(address(_futuresMarket), 0);
+
         _swapEverythingForToken0();
+
+        _positionId = 0;
 
         emit StoppedStratergy(block.timestamp);
     }
