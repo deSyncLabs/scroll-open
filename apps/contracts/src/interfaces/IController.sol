@@ -16,7 +16,15 @@ interface IController {
 
     event PoolRemoved(address indexed token, address indexed pool, uint256 timestamp);
 
-    function createPool(address token_, uint256 apy_) external;
+    function createStartergyPool(
+        address token0_,
+        address token1_,
+        uint256 apy_,
+        uint24 poolFee_,
+        address nonFungiblePositionManager_,
+        address swapRouter_,
+        address futuresMarket_
+    ) external;
 
     function addPool(address token_, address pool_) external;
 

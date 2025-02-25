@@ -6,7 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {AggregatorV3Interface} from "@chainlink/interfaces/feeds/AggregatorV3Interface.sol";
-import {Pool} from "./Pool.sol";
+import {StratergyPool} from "./StratergyPool.sol";
 import {IPool} from "./interfaces/IPool.sol";
 import {IController} from "./interfaces/IController.sol";
 
@@ -26,15 +26,33 @@ contract Controller is IController, Ownable {
         liquidationThreshold = liquidationThreshold_;
     }
 
-    function createPool(address token_, uint256 apy_) external override onlyOwner {
-        if (address(_pools[token_]) != address(0)) {
+    function createStartergyPool(
+        address token0_,
+        address token1_,
+        uint256 apy_,
+        uint24 poolFee_,
+        address nonFungiblePositionManager_,
+        address swapRouter_,
+        address futuresMarket_
+    ) external override onlyOwner {
+        if (address(_pools[token0_]) != address(0)) {
             revert PoolAlreadyExists();
         }
 
-        _pools[token_] = new Pool(token_, apy_, address(this), msg.sender);
-        _poolList.push(_pools[token_]);
+        _pools[token0_] = new StratergyPool(
+            token0_,
+            apy_,
+            address(this),
+            msg.sender,
+            token1_,
+            poolFee_,
+            nonFungiblePositionManager_,
+            swapRouter_,
+            futuresMarket_
+        );
+        _poolList.push(_pools[token0_]);
 
-        emit PoolAdded(token_, address(_pools[token_]), block.timestamp);
+        emit PoolAdded(token0_, address(_pools[token0_]), block.timestamp);
     }
 
     function addPool(address token_, address pool_) external override onlyOwner {

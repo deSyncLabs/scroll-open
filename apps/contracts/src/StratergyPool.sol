@@ -10,7 +10,7 @@ import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/Transfer
 import {Pool} from "./Pool.sol";
 import {IFuturesMarket} from "./interfaces/IFuturesMarket.sol";
 
-contract Stratergy1Pool is Pool, IERC721Receiver {
+contract StratergyPool is Pool, IERC721Receiver {
     using TransferHelper for address;
 
     address private _token0;
