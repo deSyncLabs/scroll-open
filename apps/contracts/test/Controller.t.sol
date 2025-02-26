@@ -34,9 +34,9 @@ contract ControllerTest is Test {
         bob = vm.addr(420);
 
         vm.startPrank(superDeployer);
-        address mockEthAggregator = address(new MockAggregatorV3(3000 * 1e8, 8));
-        address mockBtcAggregator = address(new MockAggregatorV3(100000 * 1e18, 18));
-        
+        address mockEthAggregator = address(new MockAggregatorV3(3000 * 1e8, 8, owner));
+        address mockBtcAggregator = address(new MockAggregatorV3(100000 * 1e18, 18, owner));
+
         eth = new MockERC20("ETH", "ETH");
         btc = new MockERC20("BTC", "BTC");
 
@@ -44,9 +44,7 @@ contract ControllerTest is Test {
         eth.transfer(bob, 1000 * 1e18);
         btc.transfer(alice, 1000 * 1e18);
         btc.transfer(bob, 1000 * 1e18);
-        
-        vm.stopPrank();
 
-        
+        vm.stopPrank();
     }
 }

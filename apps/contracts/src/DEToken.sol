@@ -8,56 +8,110 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {RayMath} from "lib/RayMath.sol";
 import {IDEToken} from "./interfaces/IDEToken.sol";
 import {IPool} from "./interfaces/IPool.sol";
+import {IController} from "./interfaces/IController.sol";
 
 contract DEToken is IDEToken, ERC20, ReentrancyGuard, Ownable {
     IPool public pool;
+    IController public controller;
 
     uint256 public lastYieldUpdate;
+    address public externalOwner;
 
-    constructor(string memory name_, string memory symbol_, address pool_) ERC20(name_, symbol_) Ownable(msg.sender) {
+    mapping(address => uint256) public lastActionTimestamp;
+
+    modifier onlyExternalOwner() {
+        if (msg.sender != externalOwner) {
+            revert OnlyExternalOwner();
+        }
+
+        _;
+    }
+
+    modifier mintInterest(address user_) {
+        uint256 interestEarned = _getInterestEarnedByAUser(user_);
+
+        if (interestEarned > 0) {
+            _mint(user_, interestEarned);
+        }
+
+        _;
+
+        lastActionTimestamp[msg.sender] = block.timestamp;
+    }
+
+    modifier noDebt(address user_) {
+        if (controller.healthFactorFor(user_) >= type(uint256).max) {
+            revert DebtExists(controller.totalDebtOfInUSD(user_));
+        }
+
+        _;
+    }
+
+    constructor(string memory name_, string memory symbol_, address pool_, address owner_, address externalOwner_)
+        ERC20(name_, symbol_)
+        Ownable(owner_)
+    {
         pool = IPool(pool_);
+        controller = IController(pool.controller());
         lastYieldUpdate = block.timestamp;
+
+        externalOwner = externalOwner_;
     }
 
-    function balanceOf(address account) public view override(ERC20, IERC20) returns (uint256) {
-        return super.balanceOf(account) * pool.liquidityIndex() / RayMath.RAY;
-    }
+    function balanceOf(address account) public view override(ERC20, IERC20) returns (uint256) {}
 
-    function transfer(address to_, uint256 value_) public override(ERC20, IERC20) nonReentrant returns (bool) {
-        uint256 scaledValue = (value_ * RayMath.RAY + pool.liquidityIndex() - 1) / pool.liquidityIndex();
-        super.transfer(to_, scaledValue);
-        return true;
+    function transfer(address to_, uint256 value_)
+        public
+        override(ERC20, IERC20)
+        nonReentrant
+        mintInterest(msg.sender)
+        noDebt(msg.sender)
+        returns (bool)
+    {
+        super.transfer(to_, value_);
     }
 
     function transferFrom(address from_, address to_, uint256 value_)
         public
         override(ERC20, IERC20)
         nonReentrant
+        mintInterest(from_)
+        mintInterest(to_)
+        noDebt(from_)
         returns (bool)
     {
-        uint256 scaledValue = (value_ * RayMath.RAY + pool.liquidityIndex() - 1) / pool.liquidityIndex();
-        super.transferFrom(from_, to_, scaledValue);
-        return true;
+        super.transferFrom(from_, to_, value_);
     }
 
-    function mint(address to_, uint256 value_) public onlyOwner nonReentrant {
-        uint256 scaledValue = (value_ * RayMath.RAY + pool.liquidityIndex() - 1) / pool.liquidityIndex();
-        _mint(to_, scaledValue);
+    function mint(address to_, uint256 value_) public onlyOwner mintInterest(to_) nonReentrant {
+        _mint(to_, value_);
     }
 
-    function burn(address from_, uint256 value_) public onlyOwner nonReentrant {
-        uint256 scaledValue = (value_ * RayMath.RAY + pool.liquidityIndex() - 1) / pool.liquidityIndex();
-        _burn(from_, scaledValue);
+    function burn(address from_, uint256 value_) public onlyOwner mintInterest(from_) nonReentrant {
+        _burn(from_, value_);
     }
 
-    function _poolTransfer(address from_, address to_, uint256 value_) public override onlyOwner nonReentrant {
-        uint256 scaledValue = (value_ * RayMath.RAY + pool.liquidityIndex() - 1) / pool.liquidityIndex();
-        _transfer(from_, to_, scaledValue);
+    function _poolTransfer(address from_, address to_, uint256 value_)
+        public
+        override
+        mintInterest(from_)
+        mintInterest(to_)
+        onlyOwner
+        nonReentrant
+    {
+        _transfer(from_, to_, value_);
     }
 
-    function updateYieldDaily() external onlyOwner nonReentrant {
-        lastYieldUpdate = block.timestamp;
+    function _getInterestEarnedByAUser(address user_) private returns (uint256) {
+        uint256 balance = balanceOf(user_);
+        uint256 timeElapsed = block.timestamp - lastActionTimestamp[user_];
 
-        pool.updateLiquidityIndex();
+        if (timeElapsed > 0) {
+            uint256 interestEarned = (balance * pool.interestRatePerSecond() * timeElapsed) / RayMath.RAY;
+
+            return interestEarned;
+        }
+
+        return 0;
     }
 }

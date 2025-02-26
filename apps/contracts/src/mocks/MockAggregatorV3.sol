@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-contract MockAggregatorV3 {
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
+contract MockAggregatorV3 is Ownable {
     int256 private _price;
     uint8 private _decimals;
 
-    constructor(int256 price_, uint8 decimals_) {
+    constructor(int256 price_, uint8 decimals_, address owner_) Ownable(owner_) {
         _price = price_;
         _decimals = decimals_;
     }
@@ -16,5 +18,9 @@ contract MockAggregatorV3 {
 
     function decimals() external view returns (uint8) {
         return _decimals;
+    }
+
+    function setPrice(int256 price_) external onlyOwner {
+        _price = price_;
     }
 }

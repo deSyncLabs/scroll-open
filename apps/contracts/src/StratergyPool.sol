@@ -36,7 +36,7 @@ contract StratergyPool is Pool, IERC721Receiver {
     }
 
     constructor(
-        address token_,
+        address token0_,
         uint256 apy_,
         address controller_,
         address owner_,
@@ -45,14 +45,17 @@ contract StratergyPool is Pool, IERC721Receiver {
         address nonfungiblePositionManager_,
         address swapRouter_,
         address futuresMarket_
-    ) Pool(token_, apy_, controller_, owner_) {
-        _token0 = token_;
+    ) Pool(token0_, apy_, controller_, owner_) {
+        _token0 = token0_;
         _token1 = token1_;
 
         _poolFee = poolFee_;
         _tokenId = 0;
         _positionId = 0;
         _liquidity = 0;
+
+        lastExecutionTimestamp = 0;
+        isStratergyActive = false;
 
         _nonfungiblePositionManager = INonfungiblePositionManager(nonfungiblePositionManager_);
         _swapRouter = ISwapRouter(swapRouter_);
@@ -69,12 +72,12 @@ contract StratergyPool is Pool, IERC721Receiver {
         }
 
         uint256 amount0Provided;
-
-        _swapHalfForToken1(IERC20(_token0).balanceOf(address(this)));
+        _swapHalfForToken1(IERC20(_token0).balanceOf(address(this)) - _totalUnlocked);
 
         if (_tokenId == 0) {
-            (uint256 tokenId, uint128 liquidity, uint256 amount0,) =
-                _mintNeAMMPosition(IERC20(_token0).balanceOf(address(this)), IERC20(_token1).balanceOf(address(this)));
+            (uint256 tokenId, uint128 liquidity, uint256 amount0,) = _mintNeAMMPosition(
+                IERC20(_token0).balanceOf(address(this)) - _totalUnlocked, IERC20(_token1).balanceOf(address(this))
+            );
 
             _tokenId = tokenId;
             _liquidity = liquidity;
@@ -82,8 +85,8 @@ contract StratergyPool is Pool, IERC721Receiver {
         } else {
             (uint256 amount0, uint256 amount1) = _collectAllAMMFees(_tokenId);
 
-            uint256 amount0ToMint = IERC20(_token0).balanceOf(address(this)) + amount0;
-            uint256 amount1ToMint = IERC20(_token1).balanceOf(address(this)) + amount1;
+            uint256 amount0ToMint = (IERC20(_token0).balanceOf(address(this)) - _totalUnclocked) + amount0;
+            uint256 amount1ToMint = (IERC20(_token1).balanceOf(address(this)) ) + amount1;
 
             (_liquidity, amount0Provided,) = _increaseLiquidity(_tokenId, amount0ToMint, amount1ToMint);
         }

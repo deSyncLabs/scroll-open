@@ -29,7 +29,7 @@ contract MockSwapRouter is Ownable {
         _priceFeeds[token_] = AggregatorV3Interface(priceFeed_);
     }
 
-    function exactInputSingle(ISwapRouter.ExactInputSingleParams memory params_) external {
+    function exactInputSingle(ISwapRouter.ExactInputSingleParams memory params_) external returns (uint256){
         AggregatorV3Interface inPriceFeed = _priceFeeds[params_.tokenIn];
         AggregatorV3Interface outPriceFeed = _priceFeeds[params_.tokenOut];
 
@@ -47,9 +47,12 @@ contract MockSwapRouter is Ownable {
         uint256 inPrice18 = inPrice.toUint256() * 10 ** (18 - inPriceFeed.decimals());
         uint256 outPrice18 = outPrice.toUint256() * 10 ** (18 - outPriceFeed.decimals());
 
+
         uint256 amountOut = params_.amountIn * inPrice18 / outPrice18;
 
         IMintableERC20(params_.tokenIn)._burn_(msg.sender, params_.amountIn);
         IMintableERC20(params_.tokenOut)._mint_(msg.sender, amountOut);
+
+        return amountOut;
     }
 }

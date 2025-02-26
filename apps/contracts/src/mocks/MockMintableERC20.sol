@@ -19,7 +19,8 @@ contract MockMintableERC20 is IMintableERC20, ERC20, AccessControl {
         ERC20(name_, symbol_)
     {
         _mintAmount = mintAmount_;
-        grantRole(OWNER_ROLE, owner_);
+        _grantRole(OWNER_ROLE, owner_);
+        _setRoleAdmin(MINTER_BURNER_ROLE, OWNER_ROLE);
     }
 
     function mint() external override {
@@ -40,7 +41,7 @@ contract MockMintableERC20 is IMintableERC20, ERC20, AccessControl {
     }
 
     function _addMinterBurner(address account_) external override onlyRole(OWNER_ROLE) {
-        grantRole(MINTER_BURNER_ROLE, account_);
+        _grantRole(MINTER_BURNER_ROLE, account_);
     }
 
     function _setAmmPool(address ammPool_) external override onlyRole(OWNER_ROLE) {

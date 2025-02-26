@@ -25,13 +25,15 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
     IDebtToken public debtToken;
     IController public controller;
 
-    uint256 public liquidityIndex;
     uint256 public interestRatePerSecond;
     uint256 public lastUpdateTimestamp;
+
+    mapping(address user_ => uint256) private _lastDeposited;
 
     AggregatorV3Interface private _chainlinkPriceFeed;
 
     mapping(address => uint256) public unlockIntents;
+    mapping(address => uint256) public borrowIntents;
 
     uint256 private _totalUnlockedIntents;
     uint256 private _totalUnlocked;
@@ -53,11 +55,10 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
         string memory debtSymbol = string.concat(IERC20Metadata(token_).symbol(), "debt");
 
         token = IERC20(token_);
-        deToken = new DEToken(deName, deSymbol, address(this));
+        deToken = new DEToken(deName, deSymbol, address(this), address(this), owner_);
         debtToken = new DebtToken(debtName, debtSymbol, address(this));
         controller = IController(controller_);
 
-        liquidityIndex = RayMath.RAY;
         interestRatePerSecond = apy_ / 365 days;
         lastUpdateTimestamp = block.timestamp;
 
@@ -70,11 +71,19 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
         token.safeTransferFrom(msg.sender, address(this), amount_);
         deToken.mint(msg.sender, amount_);
 
+        uint256 interestEarned = _calculateInterestEarned(msg.sender);
+        deToken.mint(msg.sender, interestEarned);
+
+        _lastDeposited[msg.sender] = block.timestamp;
+
         emit Deposited(msg.sender, amount_, block.timestamp);
     }
 
     function unlock(uint256 amount_) external override nonReentrant {
         unlockIntents[msg.sender] += amount_;
+
+        uint256 interestEarned = _calculateInterestEarned(msg.sender);
+        deToken.mint(msg.sender, interestEarned);
         deToken.burn(msg.sender, amount_);
 
         _totalUnlockedIntents += amount_;
@@ -97,6 +106,8 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
             revert AlreadyUnlocked();
         }
 
+        _totalUnlocked += _totalUnlockedIntents;
+        _totalUnlockedIntents = 0;
         locked = false;
     }
 
@@ -112,13 +123,35 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
         }
 
         token.safeTransfer(msg.sender, amount);
+        unlockIntents[msg.sender] = 0;
+        _totalUnlocked -= amount;
 
         emit Withdrawn(msg.sender, amount, block.timestamp);
     }
 
     function _borrow(address account_, uint256 amount_) external override onlyController {
         debtToken.mint(account_, amount_);
-        token.safeTransfer(account_, amount_);
+
+        borrowIntents[account_] += amount_;
+
+        emit BorrowIntentPosted(account_, amount_, block.timestamp);
+    }
+
+    function borrow() external override nonReentrant {
+        uint256 amount = borrowIntents[msg.sender];
+
+        if (amount == 0) {
+            revert NoAmountUnlocked();
+        }
+
+        if (locked) {
+            revert PoolLocked();
+        }
+
+        token.safeTransfer(msg.sender, amount);
+        borrowIntents[msg.sender] = 0;
+
+        emit Borrowed(msg.sender, amount, block.timestamp);
     }
 
     function _liquidate(address account_, address receiver_) external override onlyController {
@@ -137,15 +170,6 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
         debtToken.burn(msg.sender, amount_);
 
         emit Repaid(msg.sender, token_, amount_, block.timestamp);
-    }
-
-    function updateLiquidityIndex() external override {
-        uint256 timeElapsed = block.timestamp - lastUpdateTimestamp;
-
-        if (timeElapsed > 0) {
-            liquidityIndex = liquidityIndex * (RayMath.RAY + interestRatePerSecond * timeElapsed) / RayMath.RAY;
-            lastUpdateTimestamp = block.timestamp;
-        }
     }
 
     function collateralOf(address account_) external view override returns (uint256) {
@@ -182,5 +206,12 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
 
     function chainlinkPriceFeed() external view override returns (address) {
         return address(_chainlinkPriceFeed);
+    }
+
+    function _calculateInterestEarned(address user_) private view returns (uint256) {
+        uint256 deTokenBalance = deToken.balanceOf(user_);
+        uint256 timeElapsed = block.timestamp - _lastDeposited[user_];
+
+        return deTokenBalance * interestRatePerSecond * timeElapsed / RayMath.RAY;
     }
 }

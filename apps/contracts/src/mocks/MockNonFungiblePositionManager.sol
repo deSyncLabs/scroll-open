@@ -3,8 +3,11 @@ pragma solidity ^0.8.20;
 
 import {INonfungiblePositionManager} from "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {MockMintableERC721} from "./MockMintableERC721.sol";
 import {IMintableERC20} from "src/interfaces/IMintableERC20.sol";
+import {RayMath} from "lib/RayMath.sol";
+import {console} from "forge-std/console.sol";
 
 contract MockNonFungiblePositionManager is Ownable {
     error NFTNotOwned();
@@ -75,11 +78,17 @@ contract MockNonFungiblePositionManager is Ownable {
 
         (uint256 interest0, uint256 interest1) = _collect(metadata);
 
+        console.log("interest0", interest0);
+        console.log("interest1", interest1);
+
         IMintableERC20(metadata.token0)._mint_(msg.sender, metadata.amount0);
         IMintableERC20(metadata.token1)._mint_(msg.sender, metadata.amount1);
 
-        IMintableERC20(metadata.token0).transfer(msg.sender, interest0);
-        IMintableERC20(metadata.token1).transfer(msg.sender, interest1);
+        bool tok0 = IMintableERC20(metadata.token0).transfer(msg.sender, interest0);
+        bool tok1 =IMintableERC20(metadata.token1).transfer(msg.sender, interest1);
+
+        console.log("tok0", tok0);
+        console.log("tok1", tok1);
 
         _mintableERC721.updateMetadata(
             params_.tokenId, MockMintableERC721.Metadata(metadata.token0, metadata.token1, 0, 0, 0, block.timestamp)
@@ -122,8 +131,12 @@ contract MockNonFungiblePositionManager is Ownable {
 
         uint256 timeDiff = block.timestamp - timestamp;
 
-        uint256 interest0 = ((amount0 * _apy * timeDiff) / (365 days * 10 ** 18)) / 2;
-        uint256 interest1 = ((amount1 * _apy * timeDiff) / (365 days * 10 ** 18)) / 2;
+        uint256 interestRatePerSecond = _apy / 365 days;
+
+        uint256 interest0 =
+            (amount0 * interestRatePerSecond * timeDiff * IERC20Metadata(metadata_.token0).decimals() / RayMath.RAY) / 2;
+        uint256 interest1 =
+            (amount1 * interestRatePerSecond * timeDiff * IERC20Metadata(metadata_.token1).decimals() / RayMath.RAY) / 2;
 
         IMintableERC20(metadata_.token0)._mint_(address(this), interest0);
         IMintableERC20(metadata_.token1)._mint_(address(this), interest1);

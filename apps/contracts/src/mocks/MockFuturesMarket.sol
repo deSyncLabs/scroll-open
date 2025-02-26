@@ -11,6 +11,8 @@ contract MockFuturesMarket is AccessControl {
 
     error PriceFeedNotFound(address token_);
 
+    error SizeMismatch();
+
     mapping(address token_ => AggregatorV3Interface) private _priceFeeds;
 
     struct Position {
@@ -27,7 +29,15 @@ contract MockFuturesMarket is AccessControl {
 
     mapping(uint256 tokenId_ => Position) private _positions;
 
-    constructor(address admin_) {
+    constructor(address[] memory tokens_, address[] memory priceFeeds_, address admin_) {
+        if (tokens_.length != priceFeeds_.length) {
+            revert SizeMismatch();
+        }
+
+        for (uint256 i = 0; i < tokens_.length; i++) {
+            _priceFeeds[tokens_[i]] = AggregatorV3Interface(priceFeeds_[i]);
+        }
+
         _positionId = 0;
 
         _grantRole(ADMIN_ROLE, admin_);
@@ -118,5 +128,9 @@ contract MockFuturesMarket is AccessControl {
 
     function addPriceFeed(address token_, address priceFeed_) external onlyRole(ADMIN_ROLE) {
         _priceFeeds[token_] = AggregatorV3Interface(priceFeed_);
+    }
+
+    function _addAuthorized(address account_) external onlyRole(ADMIN_ROLE) {
+        _grantRole(AUTHORIZED_ROLE, account_);
     }
 }

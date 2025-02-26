@@ -29,6 +29,8 @@ interface IPool {
 
     error PoolLocked();
 
+    event BorrowIntentPosted(address indexed account, uint256 indexed amount, uint256 timestamp);
+
     event UnlockIntentPosted(address indexed account, uint256 indexed amount, uint256 timestamp);
 
     event Unlocked(uint256 indexed timestamp);
@@ -61,6 +63,8 @@ interface IPool {
 
     function _borrow(address account_, uint256 amount) external;
 
+    function borrow() external;
+
     function _liquidate(address account_, address receiver_) external;
 
     function repay(address token_, uint256 amount_) external;
@@ -70,8 +74,6 @@ interface IPool {
     function executeStratergy() external;
 
     function unexecuteStratergy() external;
-
-    function liquidityIndex() external view returns (uint256);
 
     function interestRatePerSecond() external view returns (uint256);
 
