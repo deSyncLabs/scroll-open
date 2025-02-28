@@ -37,7 +37,6 @@ contract StratergyPool is Pool, IERC721Receiver {
 
     constructor(
         address token0_,
-        uint256 apy_,
         address controller_,
         address owner_,
         address token1_,
@@ -45,7 +44,7 @@ contract StratergyPool is Pool, IERC721Receiver {
         address nonfungiblePositionManager_,
         address swapRouter_,
         address futuresMarket_
-    ) Pool(token0_, apy_, controller_, owner_) {
+    ) Pool(token0_, controller_, owner_) {
         _token0 = token0_;
         _token1 = token1_;
 
@@ -53,6 +52,10 @@ contract StratergyPool is Pool, IERC721Receiver {
         _tokenId = 0;
         _positionId = 0;
         _liquidity = 0;
+
+        _totalUnlocked = 0;
+        _beforeExecutionToken0Balance = 0;
+        _afterExecutionToken0Balance = 0;
 
         lastExecutionTimestamp = 0;
         isStratergyActive = false;
@@ -67,9 +70,7 @@ contract StratergyPool is Pool, IERC721Receiver {
             revert StratergyAlreadyActive();
         }
 
-        if (block.timestamp - lastExecutionTimestamp < 1 days) {
-            revert StratergyExecutionInterval();
-        }
+        _beforeExecutionToken0Balance = IERC20(_token0).balanceOf(address(this)) - _totalUnlocked;
 
         uint256 amount0Provided;
         _swapHalfForToken1(IERC20(_token0).balanceOf(address(this)) - _totalUnlocked);
@@ -85,8 +86,8 @@ contract StratergyPool is Pool, IERC721Receiver {
         } else {
             (uint256 amount0, uint256 amount1) = _collectAllAMMFees(_tokenId);
 
-            uint256 amount0ToMint = (IERC20(_token0).balanceOf(address(this)) - _totalUnclocked) + amount0;
-            uint256 amount1ToMint = (IERC20(_token1).balanceOf(address(this)) ) + amount1;
+            uint256 amount0ToMint = (IERC20(_token0).balanceOf(address(this)) - _totalUnlocked) + amount0;
+            uint256 amount1ToMint = (IERC20(_token1).balanceOf(address(this))) + amount1;
 
             (_liquidity, amount0Provided,) = _increaseLiquidity(_tokenId, amount0ToMint, amount1ToMint);
         }
@@ -101,6 +102,8 @@ contract StratergyPool is Pool, IERC721Receiver {
 
         lastExecutionTimestamp = block.timestamp;
         isStratergyActive = true;
+
+        _lock();
 
         emit StartedStratergy(block.timestamp);
     }
@@ -128,6 +131,11 @@ contract StratergyPool is Pool, IERC721Receiver {
         _swapEverythingForToken0();
 
         _positionId = 0;
+        isStratergyActive = false;
+        _afterExecutionToken0Balance = IERC20(_token0).balanceOf(address(this)) - _totalUnlocked;
+
+        _updateAPY();
+        _unlock();
 
         emit StoppedStratergy(block.timestamp);
     }

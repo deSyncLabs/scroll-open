@@ -9,13 +9,17 @@ interface IDEToken is IERC20, IERC20Metadata {
 
     error DebtExists(uint256 amountInUSD_);
 
-    function mint(address account, uint256 amount) external;
+    error NoInterestEarned();
 
-    function burn(address account, uint256 amount) external;
+    function update(address account_) external;
 
-    function _poolTransfer(address from, address to, uint256 amount) external;
+    function mint(address account_, uint256 amount_) external;
 
-    function updateYieldDaily() external;
+    function burn(address account_, uint256 amount_) external;
+
+    function _poolTransfer(address from_, address to_, uint256 amount_) external;
 
     function externalOwner() external view returns (address);
+
+    function lastActionTimestamp(address account_) external view returns (uint256);
 }

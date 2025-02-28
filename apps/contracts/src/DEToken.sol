@@ -12,7 +12,6 @@ import {IController} from "./interfaces/IController.sol";
 
 contract DEToken is IDEToken, ERC20, ReentrancyGuard, Ownable {
     IPool public pool;
-    IController public controller;
 
     uint256 public lastYieldUpdate;
     address public externalOwner;
@@ -40,6 +39,8 @@ contract DEToken is IDEToken, ERC20, ReentrancyGuard, Ownable {
     }
 
     modifier noDebt(address user_) {
+        IController controller = pool.controller();
+
         if (controller.healthFactorFor(user_) >= type(uint256).max) {
             revert DebtExists(controller.totalDebtOfInUSD(user_));
         }
@@ -52,13 +53,14 @@ contract DEToken is IDEToken, ERC20, ReentrancyGuard, Ownable {
         Ownable(owner_)
     {
         pool = IPool(pool_);
-        controller = IController(pool.controller());
         lastYieldUpdate = block.timestamp;
 
         externalOwner = externalOwner_;
     }
 
-    function balanceOf(address account) public view override(ERC20, IERC20) returns (uint256) {}
+    function balanceOf(address account_) public view override(ERC20, IERC20) returns (uint256) {
+        return super.balanceOf(account_) + _getInterestEarnedByAUser(account_);
+    }
 
     function transfer(address to_, uint256 value_)
         public
@@ -68,7 +70,7 @@ contract DEToken is IDEToken, ERC20, ReentrancyGuard, Ownable {
         noDebt(msg.sender)
         returns (bool)
     {
-        super.transfer(to_, value_);
+        return super.transfer(to_, value_);
     }
 
     function transferFrom(address from_, address to_, uint256 value_)
@@ -80,7 +82,18 @@ contract DEToken is IDEToken, ERC20, ReentrancyGuard, Ownable {
         noDebt(from_)
         returns (bool)
     {
-        super.transferFrom(from_, to_, value_);
+        return super.transferFrom(from_, to_, value_);
+    }
+
+    function update(address account_) public override {
+        uint256 interestEarned = _getInterestEarnedByAUser(account_);
+
+        if (!(interestEarned > 0)) {
+            revert NoInterestEarned();
+        }
+
+        _mint(account_, interestEarned);
+        lastActionTimestamp[account_] = block.timestamp;
     }
 
     function mint(address to_, uint256 value_) public onlyOwner mintInterest(to_) nonReentrant {
@@ -102,16 +115,18 @@ contract DEToken is IDEToken, ERC20, ReentrancyGuard, Ownable {
         _transfer(from_, to_, value_);
     }
 
-    function _getInterestEarnedByAUser(address user_) private returns (uint256) {
-        uint256 balance = balanceOf(user_);
-        uint256 timeElapsed = block.timestamp - lastActionTimestamp[user_];
+    function _getInterestEarnedByAUser(address user_) private view returns (uint256) {
+        uint256 balance = super.balanceOf(user_);
+        uint256 lastPoolUpdate = pool.lastUpdateTimestamp();
+        uint256 lastAction = lastActionTimestamp[user_];
 
-        if (timeElapsed > 0) {
-            uint256 interestEarned = (balance * pool.interestRatePerSecond() * timeElapsed) / RayMath.RAY;
-
-            return interestEarned;
+        if (lastAction > lastPoolUpdate) {
+            return 0;
         }
 
-        return 0;
+        uint256 timeElapsed = lastPoolUpdate - lastAction;
+        uint256 interestEarned = (balance * pool.interestRatePerSecond() * timeElapsed) / RayMath.RAY;
+
+        return interestEarned;
     }
 }

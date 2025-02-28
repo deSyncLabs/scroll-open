@@ -55,10 +55,6 @@ interface IPool {
 
     function unlock(uint256 amount) external;
 
-    function _unlock() external;
-
-    function _lock() external;
-
     function withdraw() external;
 
     function _borrow(address account_, uint256 amount) external;
@@ -68,8 +64,6 @@ interface IPool {
     function _liquidate(address account_, address receiver_) external;
 
     function repay(address token_, uint256 amount_) external;
-
-    function updateLiquidityIndex() external;
 
     function executeStratergy() external;
 
@@ -96,4 +90,8 @@ interface IPool {
     function debtOfInUSD(address account) external view returns (uint256);
 
     function chainlinkPriceFeed() external view returns (address);
+
+    function apy() external view returns (uint256);
+
+    function locked() external view returns (bool);
 }

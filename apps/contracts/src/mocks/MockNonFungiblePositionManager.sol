@@ -7,7 +7,6 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {MockMintableERC721} from "./MockMintableERC721.sol";
 import {IMintableERC20} from "src/interfaces/IMintableERC20.sol";
 import {RayMath} from "lib/RayMath.sol";
-import {console} from "forge-std/console.sol";
 
 contract MockNonFungiblePositionManager is Ownable {
     error NFTNotOwned();
@@ -78,17 +77,11 @@ contract MockNonFungiblePositionManager is Ownable {
 
         (uint256 interest0, uint256 interest1) = _collect(metadata);
 
-        console.log("interest0", interest0);
-        console.log("interest1", interest1);
-
         IMintableERC20(metadata.token0)._mint_(msg.sender, metadata.amount0);
         IMintableERC20(metadata.token1)._mint_(msg.sender, metadata.amount1);
 
-        bool tok0 = IMintableERC20(metadata.token0).transfer(msg.sender, interest0);
-        bool tok1 =IMintableERC20(metadata.token1).transfer(msg.sender, interest1);
-
-        console.log("tok0", tok0);
-        console.log("tok1", tok1);
+        IMintableERC20(metadata.token0).transfer(msg.sender, interest0);
+        IMintableERC20(metadata.token1).transfer(msg.sender, interest1);
 
         _mintableERC721.updateMetadata(
             params_.tokenId, MockMintableERC721.Metadata(metadata.token0, metadata.token1, 0, 0, 0, block.timestamp)

@@ -19,7 +19,6 @@ interface IController {
     function createStartergyPool(
         address token0_,
         address token1_,
-        uint256 apy_,
         uint24 poolFee_,
         address nonFungiblePositionManager_,
         address swapRouter_,

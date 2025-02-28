@@ -29,7 +29,6 @@ contract Controller is IController, Ownable {
     function createStartergyPool(
         address token0_,
         address token1_,
-        uint256 apy_,
         uint24 poolFee_,
         address nonFungiblePositionManager_,
         address swapRouter_,
@@ -41,7 +40,6 @@ contract Controller is IController, Ownable {
 
         _pools[token0_] = new StratergyPool(
             token0_,
-            apy_,
             address(this),
             msg.sender,
             token1_,

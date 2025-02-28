@@ -15,6 +15,7 @@ import {IPool} from "./interfaces/IPool.sol";
 import {IDEToken} from "./interfaces/IDEToken.sol";
 import {IDebtToken} from "./interfaces/IDebtToken.sol";
 import {IController} from "./interfaces/IController.sol";
+import {console} from "forge-std/console.sol";
 
 abstract contract Pool is IPool, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
@@ -25,19 +26,24 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
     IDebtToken public debtToken;
     IController public controller;
 
+    uint256 private _apy;
     uint256 public interestRatePerSecond;
     uint256 public lastUpdateTimestamp;
+
+    uint256 internal _beforeExecutionToken0Balance;
+    uint256 internal _afterExecutionToken0Balance;
 
     mapping(address user_ => uint256) private _lastDeposited;
 
     AggregatorV3Interface private _chainlinkPriceFeed;
 
     mapping(address => uint256) public unlockIntents;
+    mapping(address => uint256) public _unlockIntentTimings;
     mapping(address => uint256) public borrowIntents;
 
-    uint256 private _totalUnlockedIntents;
-    uint256 private _totalUnlocked;
     bool public locked;
+    uint256 private _totalUnlockedIntents;
+    uint256 internal _totalUnlocked;
 
     modifier onlyController() {
         if (msg.sender != address(controller)) {
@@ -47,7 +53,19 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
         _;
     }
 
-    constructor(address token_, uint256 apy_, address controller_, address owner_) Ownable(owner_) {
+    modifier tryWithdrawing(address account_) {
+        if (unlockIntents[account_] > 0) {
+            if (_unlockIntentTimings[account_] <= lastUpdateTimestamp) {
+                token.safeTransfer(account_, unlockIntents[account_]);
+                unlockIntents[account_] = 0;
+                _totalUnlocked -= unlockIntents[account_];
+            }
+        }
+
+        _;
+    }
+
+    constructor(address token_, address controller_, address owner_) Ownable(owner_) {
         string memory deName = string.concat("deSync ", IERC20Metadata(token_).name());
         string memory deSymbol = string.concat("de", IERC20Metadata(token_).symbol());
 
@@ -59,7 +77,8 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
         debtToken = new DebtToken(debtName, debtSymbol, address(this));
         controller = IController(controller_);
 
-        interestRatePerSecond = apy_ / 365 days;
+        _apy = 0;
+        interestRatePerSecond = 0;
         lastUpdateTimestamp = block.timestamp;
 
         _totalUnlockedIntents = 0;
@@ -71,19 +90,15 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
         token.safeTransferFrom(msg.sender, address(this), amount_);
         deToken.mint(msg.sender, amount_);
 
-        uint256 interestEarned = _calculateInterestEarned(msg.sender);
-        deToken.mint(msg.sender, interestEarned);
-
         _lastDeposited[msg.sender] = block.timestamp;
 
         emit Deposited(msg.sender, amount_, block.timestamp);
     }
 
-    function unlock(uint256 amount_) external override nonReentrant {
+    function unlock(uint256 amount_) external override nonReentrant tryWithdrawing(msg.sender) {
         unlockIntents[msg.sender] += amount_;
+        _unlockIntentTimings[msg.sender] = block.timestamp;
 
-        uint256 interestEarned = _calculateInterestEarned(msg.sender);
-        deToken.mint(msg.sender, interestEarned);
         deToken.burn(msg.sender, amount_);
 
         _totalUnlockedIntents += amount_;
@@ -91,7 +106,7 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
         emit UnlockIntentPosted(msg.sender, amount_, block.timestamp);
     }
 
-    function _lock() external override onlyOwner {
+    function _lock() internal {
         if (locked) {
             revert AlreadyLocked();
         }
@@ -101,7 +116,7 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
         emit Locked(block.timestamp);
     }
 
-    function _unlock() external override onlyOwner {
+    function _unlock() internal {
         if (!locked) {
             revert AlreadyUnlocked();
         }
@@ -118,8 +133,8 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
             revert NoAmountUnlocked();
         }
 
-        if (locked) {
-            revert PoolLocked();
+        if (_unlockIntentTimings[msg.sender] > lastUpdateTimestamp) {
+            revert NoAmountUnlocked();
         }
 
         token.safeTransfer(msg.sender, amount);
@@ -208,10 +223,30 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
         return address(_chainlinkPriceFeed);
     }
 
-    function _calculateInterestEarned(address user_) private view returns (uint256) {
-        uint256 deTokenBalance = deToken.balanceOf(user_);
-        uint256 timeElapsed = block.timestamp - _lastDeposited[user_];
+    function apy() external view override returns (uint256) {
+        return _apy;
+    }
 
-        return deTokenBalance * interestRatePerSecond * timeElapsed / RayMath.RAY;
+    function _updateAPY() internal {
+        if (_afterExecutionToken0Balance > _beforeExecutionToken0Balance) {
+            uint256 timeElapsed = block.timestamp - lastUpdateTimestamp;
+            uint256 ratio = (
+                ((_afterExecutionToken0Balance - _beforeExecutionToken0Balance) * RayMath.RAY)
+                    / _beforeExecutionToken0Balance
+            );
+
+            uint256 ratioPerSecond = ratio / timeElapsed;
+            uint256 ratioPerYear = ratioPerSecond * 365 days;
+
+            _apy = ratioPerYear;
+            interestRatePerSecond = ratioPerSecond;
+            lastUpdateTimestamp = block.timestamp;
+
+            return;
+        }
+
+        _apy = 0;
+        interestRatePerSecond = 0;
+        lastUpdateTimestamp = block.timestamp;
     }
 }

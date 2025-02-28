@@ -44,7 +44,7 @@ contract StratergyPoolTest is Test {
         vm.startPrank(superDeployer);
         eth = new MockMintableERC20("Ethereum", "ETH", 100 * 1e18, owner);
         usdc = new MockMintableERC20("USD Coin", "USDC", 0, owner);
-        
+
         nonFungiblePositionManager = new MockNonFungiblePositionManager(interestRate, owner);
 
         priceFeeds[eth] = new MockAggregatorV3(3000 * 1e18, 18, owner);
@@ -65,7 +65,6 @@ contract StratergyPoolTest is Test {
         vm.startPrank(deployer);
         pool = new StratergyPool(
             address(eth),
-            interestRate, // 10% -> 0.10 -> to Ray -> 0.1 * 1e27 -> 1e26
             deployer,
             owner,
             address(usdc),
@@ -146,6 +145,8 @@ contract StratergyPoolTest is Test {
         vm.prank(alice);
         pool.deposit(100 * 1e18);
 
+        uint256 lastUpdateTimestamp = pool.lastUpdateTimestamp();
+
         vm.prank(owner);
         pool.executeStratergy();
 
@@ -153,16 +154,206 @@ contract StratergyPoolTest is Test {
 
         vm.startPrank(owner);
         pool.unexecuteStratergy();
-        deToken.updateYieldDaily();
         vm.stopPrank();
 
+        uint256 timeElapsedPool = block.timestamp - lastUpdateTimestamp;
+        uint256 timeElapsedAlice = lastUpdateTimestamp - deToken.lastActionTimestamp(alice);
         uint256 interestRatePerSecond = pool.interestRatePerSecond();
-        uint256 collectedInterest = 100 * 1e18 * interestRatePerSecond * 1 days / 1e27;
+        uint256 interestCollectedPool = (1100 * 1e18 * interestRatePerSecond * timeElapsedPool / 1e27) + 1;
+        uint256 collectedInterestAlice = (100 * 1e18 * interestRatePerSecond * timeElapsedAlice) / 1e27;
 
         vm.prank(alice);
         pool.deposit(100 * 1e18);
 
-        // assertEq(eth.balanceOf(address(pool)), 1200 * 1e18);
-        assertEq(deToken.balanceOf(alice), 200 * 1e18 + collectedInterest);
+        assertEq(eth.balanceOf(address(pool)), 1200 * 1e18 + interestCollectedPool);
+        assertGt(deToken.balanceOf(alice), 200 * 1e18 + collectedInterestAlice);
+    }
+
+    function test_sendUnlockIntent() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(2 hours);
+
+        vm.startPrank(alice);
+        pool.unlock(25 * 1e18);
+
+        assertEq(deToken.balanceOf(alice), 75 * 1e18);
+        assertEq(pool.unlockIntents(alice), 25 * 1e18);
+    }
+
+    function test_sendUnlockIntentTwice() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(2 hours);
+
+        vm.startPrank(alice);
+        pool.unlock(25 * 1e18);
+        pool.unlock(25 * 1e18);
+
+        assertEq(deToken.balanceOf(alice), 50 * 1e18);
+        assertEq(pool.unlockIntents(alice), 50 * 1e18);
+    }
+
+    function test_verifyLockedPoolWhenExecutingStratergy() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        assert(pool.locked());
+    }
+
+    function test_verifyUnlockedPoolWhenUnexecutedStratergy() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(2 hours);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        assert(!pool.locked());
+    }
+
+    function test_cannotWithdrawWithoutAnIntent() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(2 hours);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        vm.prank(alice);
+        vm.expectRevert();
+        pool.withdraw();
+    }
+
+    function test_cannotWithdrawBeforeEndOfTheStratergyCycle() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 hours);
+
+        vm.startPrank(alice);
+        pool.unlock(25 * 1e18);
+
+        vm.expectRevert();
+        pool.withdraw();
+        vm.stopPrank();
+    }
+
+    function test_allowWithdrawAfterEndOfTheStratergyCycle() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(2 hours);
+
+        vm.prank(alice);
+        pool.unlock(25 * 1e18);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        vm.prank(alice);
+        pool.withdraw();
+
+        assertLt(deToken.balanceOf(alice), 100 * 1e18);
+        assertEq(pool.unlockIntents(alice), 0);
+    }
+
+    function test_allowWithdrawalInNextCycleIfUnlocked() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(2 hours);
+
+        vm.prank(alice);
+        pool.unlock(25 * 1e18);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        skip(10 minutes);
+
+        vm.prank(alice);
+        pool.unlock(50 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        assertLt(deToken.balanceOf(alice), 100 * 1e18);
+        assertEq(pool.unlockIntents(alice), 50 * 1e18);
+        assertEq(eth.balanceOf(alice), ((1000 - 100) + 25) * 1e18);
+    }
+
+    function test_allowWithdrawalInNextCycleIfUnlockedTwice() public {
+        vm.prank(alice);
+        pool.deposit(250 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(2 hours);
+
+        vm.prank(alice);
+        pool.unlock(25 * 1e18);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        skip(10 minutes);
+
+        vm.prank(alice);
+        pool.unlock(50 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(2 hours);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        skip(10 minutes);
+
+        vm.prank(alice);
+        pool.unlock(75 * 1e18);
+
+        skip(10 minutes);
+
+        vm.prank(alice);
+        pool.unlock(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        assertLt(deToken.balanceOf(alice), 100 * 1e18);
+        assertEq(pool.unlockIntents(alice), 175 * 1e18);
+        assertEq(eth.balanceOf(alice), ((1000 - 250) + 25 + 50) * 1e18);
     }
 }
