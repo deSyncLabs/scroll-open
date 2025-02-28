@@ -38,8 +38,9 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
     AggregatorV3Interface private _chainlinkPriceFeed;
 
     mapping(address => uint256) public unlockIntents;
-    mapping(address => uint256) public _unlockIntentTimings;
+    mapping(address => uint256) public unlockIntentTimings;
     mapping(address => uint256) public borrowIntents;
+    mapping(address => uint256) public borrowIntentTimings;
 
     bool public locked;
     uint256 private _totalUnlockedIntents;
@@ -55,10 +56,24 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
 
     modifier tryWithdrawing(address account_) {
         if (unlockIntents[account_] > 0) {
-            if (_unlockIntentTimings[account_] <= lastUpdateTimestamp) {
+            if (unlockIntentTimings[account_] <= lastUpdateTimestamp) {
                 token.safeTransfer(account_, unlockIntents[account_]);
                 unlockIntents[account_] = 0;
                 _totalUnlocked -= unlockIntents[account_];
+            }
+        }
+
+        _;
+    }
+
+    modifier tryBorrowing(address account_) {
+        if (borrowIntents[account_] > 0) {
+            if (borrowIntentTimings[account_] <= lastUpdateTimestamp) {
+                token.safeTransfer(account_, borrowIntents[account_]);
+                borrowIntents[account_] = 0;
+                _totalUnlocked -= borrowIntents[account_];
+
+                debtToken.mint(account_, borrowIntents[account_]);
             }
         }
 
@@ -97,7 +112,7 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
 
     function unlock(uint256 amount_) external override nonReentrant tryWithdrawing(msg.sender) {
         unlockIntents[msg.sender] += amount_;
-        _unlockIntentTimings[msg.sender] = block.timestamp;
+        unlockIntentTimings[msg.sender] = block.timestamp;
 
         deToken.burn(msg.sender, amount_);
 
@@ -133,7 +148,7 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
             revert NoAmountUnlocked();
         }
 
-        if (_unlockIntentTimings[msg.sender] > lastUpdateTimestamp) {
+        if (unlockIntentTimings[msg.sender] > lastUpdateTimestamp) {
             revert NoAmountUnlocked();
         }
 
@@ -144,10 +159,11 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
         emit Withdrawn(msg.sender, amount, block.timestamp);
     }
 
-    function _borrow(address account_, uint256 amount_) external override onlyController {
-        debtToken.mint(account_, amount_);
-
+    function _borrow(address account_, uint256 amount_) external override onlyController tryBorrowing(account_) {
         borrowIntents[account_] += amount_;
+        borrowIntentTimings[account_] = block.timestamp;
+
+        _totalUnlocked += amount_;
 
         emit BorrowIntentPosted(account_, amount_, block.timestamp);
     }
@@ -159,12 +175,14 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
             revert NoAmountUnlocked();
         }
 
-        if (locked) {
-            revert PoolLocked();
+        if (borrowIntentTimings[msg.sender] > lastUpdateTimestamp) {
+            revert NoAmountUnlocked();
         }
 
         token.safeTransfer(msg.sender, amount);
+        debtToken.mint(msg.sender, amount);
         borrowIntents[msg.sender] = 0;
+        _totalUnlocked -= amount;
 
         emit Borrowed(msg.sender, amount, block.timestamp);
     }

@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import {Test} from "forge-std/Test.sol";
 import {StratergyPool} from "src/StratergyPool.sol";
 import {IDEToken} from "src/interfaces/IDEToken.sol";
+import {IDebtToken} from "src/interfaces/IDebtToken.sol";
 import {MockMintableERC20} from "src/mocks/MockMintableERC20.sol";
 import {MockNonFungiblePositionManager} from "src/mocks/MockNonFungiblePositionManager.sol";
 import {MockAggregatorV3} from "src/mocks/MockAggregatorV3.sol";
@@ -28,6 +29,7 @@ contract StratergyPoolTest is Test {
     StratergyPool pool;
 
     IDEToken deToken;
+    IDebtToken debtToken;
     uint256 interestRate;
     uint24 ammPoolFee;
 
@@ -92,6 +94,7 @@ contract StratergyPoolTest is Test {
         vm.stopPrank();
 
         deToken = IDEToken(pool.deToken());
+        debtToken = IDebtToken(pool.debtToken());
 
         vm.prank(alice);
         eth.approve(address(pool), 1000 * 1e18);
@@ -355,5 +358,176 @@ contract StratergyPoolTest is Test {
         assertLt(deToken.balanceOf(alice), 100 * 1e18);
         assertEq(pool.unlockIntents(alice), 175 * 1e18);
         assertEq(eth.balanceOf(alice), ((1000 - 250) + 25 + 50) * 1e18);
+    }
+
+    function test_borrowWithoutIntent() public {
+        vm.prank(alice);
+        vm.expectRevert();
+        pool.borrow();
+    }
+
+    function test_subitBorrowIntentNoStratergy() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(deployer);
+        pool._borrow(alice, 25 * 1e18);
+
+        assertEq(pool.borrowIntents(alice), 25 * 1e18);
+    }
+
+    function test_submitBorrowIntentDuringStratergy() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        vm.prank(deployer);
+        pool._borrow(alice, 25 * 1e18);
+
+        assertEq(pool.borrowIntents(alice), 25 * 1e18);
+    }
+
+    function test_submitMultipleBorrowIntents() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(deployer);
+        pool._borrow(alice, 25 * 1e18);
+
+        skip(1 hours);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 hours);
+
+        vm.prank(deployer);
+        pool._borrow(alice, 50 * 1e18);
+
+        assertEq(pool.borrowIntents(alice), 75 * 1e18);
+    }
+
+    function test_borrow() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 hours);
+
+        vm.prank(deployer);
+        pool._borrow(alice, 25 * 1e18);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        vm.prank(alice);
+        pool.borrow();
+
+        assertEq(eth.balanceOf(alice), (1000 - 75) * 1e18);
+        assertEq(deToken.balanceOf(alice), 100 * 1e18);
+        assertEq(debtToken.balanceOf(alice), 25 * 1e18);
+        assertEq(pool.borrowIntents(alice), 0);
+    }
+
+    function test_borrowWithDoubleIntent() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(deployer);
+        pool._borrow(alice, 25 * 1e18);
+
+        skip(1 hours);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 hours);
+
+        vm.prank(deployer);
+        pool._borrow(alice, 50 * 1e18);
+
+        skip(1 hours);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        vm.prank(alice);
+        pool.borrow();
+
+        assertEq(eth.balanceOf(alice), (1000 - 25) * 1e18);
+        assertEq(deToken.balanceOf(alice), 100 * 1e18);
+        assertEq(debtToken.balanceOf(alice), 75 * 1e18);
+        assertEq(pool.borrowIntents(alice), 0);
+    }
+
+    function test_borrowDuringNextExecution() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 hours);
+
+        vm.prank(deployer);
+        pool._borrow(alice, 25 * 1e18);
+
+        skip(1 hours);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        skip(1 hours);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 hours);
+
+        vm.prank(alice);
+        pool.borrow();
+
+        assertEq(eth.balanceOf(alice), (1000 - 75) * 1e18);
+        assertEq(deToken.balanceOf(alice), 100 * 1e18);
+        assertEq(debtToken.balanceOf(alice), 25 * 1e18);
+        assertEq(pool.borrowIntents(alice), 0);
+    }
+
+    function test_autoBorrowOnNextIntentIfAvailable() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 hours);
+
+        vm.prank(deployer);
+        pool._borrow(alice, 25 * 1e18);
+
+        skip(1 hours);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        skip(1 hours);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 hours);
+
+        vm.prank(deployer);
+        pool._borrow(alice, 50 * 1e18);
+
+        
+        assertEq(eth.balanceOf(alice), (1000 - 75) * 1e18);
+        assertEq(deToken.balanceOf(alice), 100 * 1e18);
+        assertEq(debtToken.balanceOf(alice), 25 * 1e18);
+        assertEq(pool.borrowIntents(alice), 50 * 1e18);
     }
 }
