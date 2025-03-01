@@ -69,11 +69,10 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
     modifier tryBorrowing(address account_) {
         if (borrowIntents[account_] > 0) {
             if (borrowIntentTimings[account_] <= lastUpdateTimestamp) {
+                debtToken.mint(account_, borrowIntents[account_]);
                 token.safeTransfer(account_, borrowIntents[account_]);
                 borrowIntents[account_] = 0;
                 _totalUnlocked -= borrowIntents[account_];
-
-                debtToken.mint(account_, borrowIntents[account_]);
             }
         }
 
@@ -191,18 +190,18 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
         uint256 debt = debtToken.balanceOf(account_);
         uint256 collateral = deToken.balanceOf(account_);
 
-        token.safeTransferFrom(receiver_, address(this), collateral);
+        token.safeTransferFrom(receiver_, address(this), debt);
         deToken._poolTransfer(account_, receiver_, collateral);
         debtToken.burn(account_, debt);
 
         emit Liquidated(account_, receiver_, debt, block.timestamp);
     }
 
-    function repay(address token_, uint256 amount_) external override {
-        IERC20(token_).safeTransferFrom(msg.sender, address(this), amount_);
+    function repay(uint256 amount_) external override {
+        token.safeTransferFrom(msg.sender, address(this), amount_);
         debtToken.burn(msg.sender, amount_);
 
-        emit Repaid(msg.sender, token_, amount_, block.timestamp);
+        emit Repaid(msg.sender, address(token), amount_, block.timestamp);
     }
 
     function collateralOf(address account_) external view override returns (uint256) {

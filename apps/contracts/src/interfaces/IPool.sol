@@ -63,7 +63,7 @@ interface IPool {
 
     function _liquidate(address account_, address receiver_) external;
 
-    function repay(address token_, uint256 amount_) external;
+    function repay(uint256 amount_) external;
 
     function executeStratergy() external;
 

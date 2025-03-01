@@ -524,10 +524,111 @@ contract StratergyPoolTest is Test {
         vm.prank(deployer);
         pool._borrow(alice, 50 * 1e18);
 
-        
         assertEq(eth.balanceOf(alice), (1000 - 75) * 1e18);
         assertEq(deToken.balanceOf(alice), 100 * 1e18);
         assertEq(debtToken.balanceOf(alice), 25 * 1e18);
         assertEq(pool.borrowIntents(alice), 50 * 1e18);
+    }
+
+    function test_onlyControllerCanSubmitBorrowIntent() public {
+        vm.prank(alice);
+        vm.expectRevert();
+        pool._borrow(alice, 25 * 1e18);
+
+        vm.prank(owner);
+        vm.expectRevert();
+        pool._borrow(alice, 25 * 1e18);
+    }
+
+    function test_borrowAndRepay() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 hours);
+
+        vm.prank(deployer);
+        pool._borrow(alice, 25 * 1e18);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        vm.prank(alice);
+        pool.borrow();
+
+        skip(1 hours);
+
+        vm.prank(alice);
+        pool.repay(25 * 1e18);
+
+        assertEq(eth.balanceOf(alice), 900 * 1e18);
+        assertEq(deToken.balanceOf(alice), 100 * 1e18);
+        assertEq(debtToken.balanceOf(alice), 0);
+    }
+
+    function test_repayWithoutBorrow() public {
+        vm.prank(alice);
+        vm.expectRevert();
+        pool.repay(25 * 1e18);
+    }
+
+    function test_partiallyRepay() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 hours);
+
+        vm.prank(deployer);
+        pool._borrow(alice, 25 * 1e18);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        vm.prank(alice);
+        pool.borrow();
+
+        skip(1 hours);
+
+        vm.prank(alice);
+        pool.repay(10 * 1e18);
+
+        assertEq(eth.balanceOf(alice), 915 * 1e18);
+        assertEq(deToken.balanceOf(alice), 100 * 1e18);
+        assertEq(debtToken.balanceOf(alice), 15 * 1e18);
+    }
+
+    function test_canLiquidate() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 hours);
+
+        vm.prank(deployer);
+        pool._borrow(alice, 25 * 1e18);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        vm.prank(alice);
+        pool.borrow();
+
+        skip(1 hours);
+
+        vm.prank(deployer);
+        pool._liquidate(alice, bob);
+
+        assertEq(eth.balanceOf(bob), (1000 - 25) * 1e18);
+        assertEq(deToken.balanceOf(alice), 0);
+        assertEq(deToken.balanceOf(bob), 100 * 1e18);
+        assertEq(debtToken.balanceOf(alice), 0);
+        assertEq(eth.balanceOf(alice), (1000 - 75) * 1e18);
     }
 }
