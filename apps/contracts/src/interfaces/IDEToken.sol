@@ -11,6 +11,8 @@ interface IDEToken is IERC20, IERC20Metadata {
 
     error NoInterestEarned();
 
+    function initialize() external;
+
     function update(address account_) external;
 
     function mint(address account_, uint256 amount_) external;

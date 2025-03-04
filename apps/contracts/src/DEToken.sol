@@ -5,12 +5,13 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import {RayMath} from "lib/RayMath.sol";
 import {IDEToken} from "./interfaces/IDEToken.sol";
 import {IPool} from "./interfaces/IPool.sol";
 import {IController} from "./interfaces/IController.sol";
 
-contract DEToken is IDEToken, ERC20, ReentrancyGuard, Ownable {
+contract DEToken is IDEToken, ERC20, ReentrancyGuard, Ownable, Initializable {
     IPool public pool;
 
     uint256 public lastYieldUpdate;
@@ -57,6 +58,8 @@ contract DEToken is IDEToken, ERC20, ReentrancyGuard, Ownable {
 
         externalOwner = externalOwner_;
     }
+
+    function initialize() public override initializer {}
 
     function balanceOf(address account_) public view override(ERC20, IERC20) returns (uint256) {
         return super.balanceOf(account_) + _getInterestEarnedByAUser(account_);
