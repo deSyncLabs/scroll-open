@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.20;
 
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {RayMath} from "lib/RayMath.sol";
 import {IDEToken} from "./interfaces/IDEToken.sol";
 import {IPool} from "./interfaces/IPool.sol";
 import {IController} from "./interfaces/IController.sol";
 
-contract DEToken is IDEToken, ERC20, ReentrancyGuard, Ownable, Initializable {
+contract DEToken is IDEToken, ERC20Upgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
     IPool public pool;
 
     uint256 public lastYieldUpdate;
@@ -49,25 +49,38 @@ contract DEToken is IDEToken, ERC20, ReentrancyGuard, Ownable, Initializable {
         _;
     }
 
-    constructor(string memory name_, string memory symbol_, address pool_, address owner_, address externalOwner_)
-        ERC20(name_, symbol_)
-        Ownable(owner_)
-    {
+    // in memory of the old constructor
+    // constructor(string memory name_, string memory symbol_, address pool_, address owner_, address externalOwner_) {
+    //     pool = IPool(pool_);
+    //     lastYieldUpdate = block.timestamp;
+
+    //     externalOwner = externalOwner_;
+    // }
+
+    function initialize(
+        string memory name_,
+        string memory symbol_,
+        address pool_,
+        address owner_,
+        address externalOwner_
+    ) external override initializer {
+        __ERC20_init(name_, symbol_);
+        __Ownable_init(owner_);
+        __ReentrancyGuard_init();
+
         pool = IPool(pool_);
         lastYieldUpdate = block.timestamp;
 
         externalOwner = externalOwner_;
     }
 
-    function initialize() public override initializer {}
-
-    function balanceOf(address account_) public view override(ERC20, IERC20) returns (uint256) {
+    function balanceOf(address account_) public view override(IERC20, ERC20Upgradeable) returns (uint256) {
         return super.balanceOf(account_) + _getInterestEarnedByAUser(account_);
     }
 
     function transfer(address to_, uint256 value_)
         public
-        override(ERC20, IERC20)
+        override(IERC20, ERC20Upgradeable)
         nonReentrant
         mintInterest(msg.sender)
         noDebt(msg.sender)
@@ -78,7 +91,7 @@ contract DEToken is IDEToken, ERC20, ReentrancyGuard, Ownable, Initializable {
 
     function transferFrom(address from_, address to_, uint256 value_)
         public
-        override(ERC20, IERC20)
+        override(IERC20, ERC20Upgradeable)
         nonReentrant
         mintInterest(from_)
         mintInterest(to_)

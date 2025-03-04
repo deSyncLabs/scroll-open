@@ -55,8 +55,8 @@ contract DeployScript is Script {
 
         eth = new MockMintableERC20("Ether", "ETH", 1 * 1e18, admin);
         btc = new MockMintableERC20("Bitcoin", "BTC", 0.1 * 1e18, admin);
-        usdc = new MockMintableERC20("USD Coin", "USDC", 2000 * 1e6, admin);
-        usdt = new MockMintableERC20("Tether", "USDT", 2000 * 1e6, admin);
+        usdc = new MockMintableERC20("USD Coin", "USDC", 2000 * 1e18, admin);
+        usdt = new MockMintableERC20("Tether", "USDT", 2000 * 1e18, admin);
 
         vm.stopBroadcast();
 
@@ -87,7 +87,7 @@ contract DeployScript is Script {
 
         // vm.broadcast(deployer);
         // swapRouter = new MockSwapRouter(_tokens, _priceFeeds, admin);
-        
+
         // vm.broadcast(deployer);
         // futuresMarket = new MockFuturesMarket(_tokens, _priceFeeds, admin);
 

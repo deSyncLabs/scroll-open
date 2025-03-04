@@ -11,7 +11,13 @@ interface IDEToken is IERC20, IERC20Metadata {
 
     error NoInterestEarned();
 
-    function initialize() external;
+    function initialize(
+        string memory name_,
+        string memory symbol_,
+        address pool_,
+        address owner_,
+        address externalOwner_
+    ) external;
 
     function update(address account_) external;
 
