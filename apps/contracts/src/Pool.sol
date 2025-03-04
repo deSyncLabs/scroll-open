@@ -14,7 +14,6 @@ import {IPool} from "./interfaces/IPool.sol";
 import {IDEToken} from "./interfaces/IDEToken.sol";
 import {IDebtToken} from "./interfaces/IDebtToken.sol";
 import {IController} from "./interfaces/IController.sol";
-import {console} from "forge-std/console.sol";
 
 abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
