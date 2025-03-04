@@ -7,6 +7,8 @@ import {IDebtToken} from "./IDebtToken.sol";
 import {IController} from "./IController.sol";
 
 interface IPool {
+    error ZeroAddress();
+
     error OnlyDEToken();
 
     error OnlyController();

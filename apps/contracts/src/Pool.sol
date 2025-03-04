@@ -1,31 +1,32 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.20;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {AggregatorV3Interface} from "@chainlink/interfaces/feeds/AggregatorV3Interface.sol";
 import {RayMath} from "lib/RayMath.sol";
-import {DEToken} from "./DEToken.sol";
-import {DebtToken} from "./DebtToken.sol";
 import {IPool} from "./interfaces/IPool.sol";
 import {IDEToken} from "./interfaces/IDEToken.sol";
 import {IDebtToken} from "./interfaces/IDebtToken.sol";
 import {IController} from "./interfaces/IController.sol";
 
-// TODO: Get rid of the DETOkens and DebtTokens deployments here
-
-abstract contract Pool is IPool, ReentrancyGuard, Ownable {
+abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
     using SafeCast for int256;
+    using Clones for address;
 
-    IERC20 public immutable token;
-    IDEToken public immutable deToken;
-    IDebtToken public immutable debtToken;
-    IController public immutable controller;
+    address public immutable deTokenImplementation;
+    address public immutable debtTokenImplementation;
+
+    IERC20 public token;
+    IDEToken public deToken;
+    IDebtToken public debtToken;
+    IController public controller;
 
     uint256 private _apy;
     uint256 public interestRatePerSecond;
@@ -36,7 +37,7 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
 
     mapping(address user_ => uint256) private _lastDeposited;
 
-    AggregatorV3Interface private immutable _chainlinkPriceFeed;
+    AggregatorV3Interface private _chainlinkPriceFeed;
 
     mapping(address => uint256) public unlockIntents;
     mapping(address => uint256) public unlockIntentTimings;
@@ -80,18 +81,57 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
         _;
     }
 
-    constructor(address token_, address controller_, address priceFeed_, address owner_) Ownable(owner_) {
+    // in memory of the old constructor
+    // constructor(address token_, address controller_, address priceFeed_, address owner_) Ownable(owner_) {
+    //     string memory deName = string.concat("deSync ", IERC20Metadata(token_).name());
+    //     string memory deSymbol = string.concat("de", IERC20Metadata(token_).symbol());
+
+    //     string memory debtName = string.concat(IERC20Metadata(token_).name(), " Debt");
+    //     string memory debtSymbol = string.concat(IERC20Metadata(token_).symbol(), "debt");
+
+    //     token = IERC20(token_);
+    //     deToken = new DEToken(deName, deSymbol, address(this), address(this), owner_);
+    //     debtToken = new DebtToken(debtName, debtSymbol, address(this));
+    //     controller = IController(controller_);
+
+    //     _chainlinkPriceFeed = AggregatorV3Interface(priceFeed_);
+
+    //     _apy = 0;
+    //     interestRatePerSecond = 0;
+    //     lastUpdateTimestamp = block.timestamp;
+
+    //     _totalUnlockedIntents = 0;
+    //     _totalUnlocked = 0;
+    //     locked = false;
+    // }
+
+    constructor(address deTokenImplementation_, address debtTokenImplementation_) {
+        if (deTokenImplementation_ == address(0) || debtTokenImplementation_ == address(0)) {
+            revert ZeroAddress();
+        }
+
+        deTokenImplementation = deTokenImplementation_;
+        debtTokenImplementation = debtTokenImplementation_;
+    }
+
+    function initialize(address token_, address controller_, address priceFeed_, address owner_) internal initializer {
+        __Ownable_init(owner_);
+        __ReentrancyGuard_init();
+
         string memory deName = string.concat("deSync ", IERC20Metadata(token_).name());
         string memory deSymbol = string.concat("de", IERC20Metadata(token_).symbol());
 
         string memory debtName = string.concat(IERC20Metadata(token_).name(), " Debt");
         string memory debtSymbol = string.concat(IERC20Metadata(token_).symbol(), "debt");
 
-        token = IERC20(token_);
-        deToken = new DEToken(deName, deSymbol, address(this), address(this), owner_);
-        debtToken = new DebtToken(debtName, debtSymbol, address(this));
-        controller = IController(controller_);
+        deToken = IDEToken(deTokenImplementation.clone());
+        deToken.initialize(deName, deSymbol, address(this), address(this), owner_);
 
+        debtToken = IDebtToken(debtTokenImplementation.clone());
+        debtToken.initialize(debtName, debtSymbol, address(this));
+
+        token = IERC20(token_);
+        controller = IController(controller_);
         _chainlinkPriceFeed = AggregatorV3Interface(priceFeed_);
 
         _apy = 0;

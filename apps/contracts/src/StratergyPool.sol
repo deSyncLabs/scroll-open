@@ -8,15 +8,16 @@ import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRoute
 import {INonfungiblePositionManager} from "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import {Pool} from "./Pool.sol";
+import {IStratergyPool} from "./interfaces/IStratergyPool.sol";
 import {IFuturesMarket} from "./interfaces/IFuturesMarket.sol";
 
-contract StratergyPool is Pool, IERC721Receiver {
+contract StratergyPool is IStratergyPool, Pool, IERC721Receiver {
     using TransferHelper for address;
 
-    address private immutable _token0;
-    address private immutable _token1;
+    address private _token0;
+    address private _token1;
 
-    uint24 private immutable _poolFee;
+    uint24 private _poolFee;
     uint256 private _tokenId;
     uint256 private _positionId;
     uint128 private _liquidity;
@@ -35,7 +36,43 @@ contract StratergyPool is Pool, IERC721Receiver {
         address token1;
     }
 
-    constructor(
+    // in memory of the old constructor
+    // constructor(
+    //     address token0_,
+    //     address controller_,
+    //     address owner_,
+    //     address token1_,
+    //     uint24 poolFee_,
+    //     address nonfungiblePositionManager_,
+    //     address swapRouter_,
+    //     address futuresMarket_,
+    //     address priceFeed_
+    // ) Pool(token0_, controller_, priceFeed_, owner_) {
+    //     _token0 = token0_;
+    //     _token1 = token1_;
+
+    //     _poolFee = poolFee_;
+    //     _tokenId = 0;
+    //     _positionId = 0;
+    //     _liquidity = 0;
+
+    //     _totalUnlocked = 0;
+    //     _beforeExecutionToken0Balance = 0;
+    //     _afterExecutionToken0Balance = 0;
+
+    //     lastExecutionTimestamp = 0;
+    //     isStratergyActive = false;
+
+    //     _nonfungiblePositionManager = INonfungiblePositionManager(nonfungiblePositionManager_);
+    //     _swapRouter = ISwapRouter(swapRouter_);
+    //     _futuresMarket = IFuturesMarket(futuresMarket_);
+    // }
+
+    constructor(address deTokenImplementation_, address debtTokenImplementation_)
+        Pool(deTokenImplementation_, debtTokenImplementation_)
+    {}
+
+    function initialize(
         address token0_,
         address controller_,
         address owner_,
@@ -45,7 +82,9 @@ contract StratergyPool is Pool, IERC721Receiver {
         address swapRouter_,
         address futuresMarket_,
         address priceFeed_
-    ) Pool(token0_, controller_, priceFeed_, owner_) {
+    ) external override initializer {
+        super.initialize(token0_, controller_, priceFeed_, owner_);
+
         _token0 = token0_;
         _token1 = token1_;
 
