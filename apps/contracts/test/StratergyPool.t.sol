@@ -73,7 +73,8 @@ contract StratergyPoolTest is Test {
             ammPoolFee,
             address(nonFungiblePositionManager),
             address(swapRouter),
-            address(futuresMarket)
+            address(futuresMarket),
+            address(priceFeeds[eth])
         );
         vm.stopPrank();
 
@@ -630,5 +631,99 @@ contract StratergyPoolTest is Test {
         assertEq(deToken.balanceOf(bob), 100 * 1e18);
         assertEq(debtToken.balanceOf(alice), 0);
         assertEq(eth.balanceOf(alice), (1000 - 75) * 1e18);
+    }
+
+    function test_earnsMoreThanDepositEvenWhenPriceGoesDown() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 hours);
+
+        vm.prank(owner);
+        priceFeeds[eth].setPrice(2000 * 1e18);
+
+        skip(1 hours);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        assertGt(deToken.balanceOf(alice), 100 * 1e18);
+    }
+
+    function test_earnsMoreThanDepositEvenWhenPriceGoesUp() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 hours);
+
+        vm.prank(owner);
+        priceFeeds[eth].setPrice(4000 * 1e18);
+
+        skip(1 hours);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        assertGt(deToken.balanceOf(alice), 100 * 1e18);
+    }
+
+    function test_debtOf() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 hours);
+
+        vm.prank(deployer);
+        pool._borrow(alice, 25 * 1e18);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        assertEq(pool.debtOf(alice), 25 * 1e18);
+    }
+
+    function test_collateralOf() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        assertEq(pool.collateralOf(alice), 100 * 1e18);
+    }
+
+    function test_debtOfInUSD() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 hours);
+
+        vm.prank(deployer);
+        pool._borrow(alice, 25 * 1e18);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        uint256 inUSD = 25 * 3000 * 1e18;
+
+        assertEq(pool.debtOfInUSD(alice), inUSD);
+    }
+
+    function test_collateralOfInUSD() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        uint256 inUSD = 100 * 3000 * 1e18;
+
+        assertEq(pool.collateralOfInUSD(alice), inUSD);
     }
 }

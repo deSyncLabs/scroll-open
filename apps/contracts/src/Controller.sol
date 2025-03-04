@@ -6,9 +6,11 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {AggregatorV3Interface} from "@chainlink/interfaces/feeds/AggregatorV3Interface.sol";
+import {RayMath} from "lib/RayMath.sol";
 import {StratergyPool} from "./StratergyPool.sol";
 import {IPool} from "./interfaces/IPool.sol";
 import {IController} from "./interfaces/IController.sol";
+import {console} from "forge-std/console.sol";
 
 contract Controller is IController, Ownable {
     using SafeCast for int256;
@@ -19,7 +21,7 @@ contract Controller is IController, Ownable {
     uint256 public liquidationThreshold;
 
     constructor(uint256 liquidationThreshold_, address owner_) Ownable(owner_) {
-        if (liquidationThreshold_ > 1e18) {
+        if (liquidationThreshold_ > RayMath.RAY) {
             revert LiquidationThresholdMustBeLessThan100();
         }
 
@@ -32,8 +34,10 @@ contract Controller is IController, Ownable {
         uint24 poolFee_,
         address nonFungiblePositionManager_,
         address swapRouter_,
-        address futuresMarket_
-    ) external override onlyOwner {
+        address futuresMarket_,
+        address priceFeed_,
+        address owner_
+    ) external override onlyOwner returns (address) {
         if (address(_pools[token0_]) != address(0)) {
             revert PoolAlreadyExists();
         }
@@ -41,27 +45,32 @@ contract Controller is IController, Ownable {
         _pools[token0_] = new StratergyPool(
             token0_,
             address(this),
-            msg.sender,
+            owner_,
             token1_,
             poolFee_,
             nonFungiblePositionManager_,
             swapRouter_,
-            futuresMarket_
+            futuresMarket_,
+            priceFeed_
         );
         _poolList.push(_pools[token0_]);
 
         emit PoolAdded(token0_, address(_pools[token0_]), block.timestamp);
+
+        return address(_pools[token0_]);
     }
 
-    function addPool(address token_, address pool_) external override onlyOwner {
-        if (address(_pools[token_]) != address(0)) {
+    function addPool(address pool_) external override onlyOwner {
+        address token = address(IPool(pool_).token());
+
+        if (address(_pools[token]) != address(0)) {
             revert PoolAlreadyExists();
         }
 
-        _pools[token_] = IPool(pool_);
+        _pools[token] = IPool(pool_);
         _poolList.push(IPool(pool_));
 
-        emit PoolAdded(token_, pool_, block.timestamp);
+        emit PoolAdded(token, pool_, block.timestamp);
     }
 
     function removePool(address token_) external override onlyOwner {
@@ -101,7 +110,7 @@ contract Controller is IController, Ownable {
         uint256 amountInUSD = (amount_ * tokenPrice.toUint256() * 1e18) / (10 ** (tokenPriceDecimals + tokenDecimals));
         totalDebt += amountInUSD;
 
-        if (_calculateHealthFactor(totalCollateral, totalDebt) <= 1e18) {
+        if (_calculateHealthFactor(totalCollateral, totalDebt) <= RayMath.RAY) {
             revert CollateralNotEnough();
         }
 
@@ -112,7 +121,10 @@ contract Controller is IController, Ownable {
         uint256 totalCollateral = totalCollateralOfInUSD(account_);
         uint256 totalDebt = totalDebtOfInUSD(account_);
 
-        if (_calculateHealthFactor(totalCollateral, totalDebt) > 1e18) {
+
+        console.log("totalCollateral: ", totalCollateral);
+        console.log("totalDebt: ", totalDebt);
+        if (_calculateHealthFactor(totalCollateral, totalDebt) > RayMath.RAY) {
             revert LiquidationThresholdNotReached();
         }
 
@@ -159,6 +171,6 @@ contract Controller is IController, Ownable {
             return type(uint256).max;
         }
 
-        return (totalCollateral_ * liquidationThreshold) / (totalDebt_);
+        return (totalCollateral_ * liquidationThreshold) / totalDebt_;
     }
 }

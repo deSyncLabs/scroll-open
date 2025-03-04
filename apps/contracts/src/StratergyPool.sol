@@ -43,8 +43,9 @@ contract StratergyPool is Pool, IERC721Receiver {
         uint24 poolFee_,
         address nonfungiblePositionManager_,
         address swapRouter_,
-        address futuresMarket_
-    ) Pool(token0_, controller_, owner_) {
+        address futuresMarket_,
+        address priceFeed_
+    ) Pool(token0_, controller_, priceFeed_, owner_) {
         _token0 = token0_;
         _token1 = token1_;
 

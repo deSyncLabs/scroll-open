@@ -22,10 +22,12 @@ interface IController {
         uint24 poolFee_,
         address nonFungiblePositionManager_,
         address swapRouter_,
-        address futuresMarket_
-    ) external;
+        address futuresMarket_,
+        address priceFeed_,
+        address owner_
+    ) external returns (address);
 
-    function addPool(address token_, address pool_) external;
+    function addPool(address pool_) external;
 
     function removePool(address token_) external;
 

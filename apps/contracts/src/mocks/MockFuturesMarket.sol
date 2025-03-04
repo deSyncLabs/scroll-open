@@ -89,29 +89,30 @@ contract MockFuturesMarket is AccessControl {
         uint8 decimals0 = _priceFeeds[position.token0].decimals();
         uint8 decimals1 = _priceFeeds[position.token1].decimals();
 
-        uint256 priceInTermsOfToken1AtExit = uint256(price0) * 10 ** decimals1 / uint256(price1) / 10 ** decimals0;
+        uint256 priceInTermsOfToken1AtExit = uint256(price0) * (10 ** decimals1) / uint256(price1) / (10 ** decimals0);
 
         bool isProfit = false;
         uint256 profitOrLoss = 0;
 
-        if (position.isLong) {
-            uint256 pa0 = position.amount0 * priceInTermsOfToken1AtExit;
-            uint256 pa1 = position.amount1;
+        uint256 pa0 = position.amount0 * priceInTermsOfToken1AtExit;
+        uint256 pa1 = position.amount1;
 
+        if (position.isLong) {
             if (pa0 > pa1) {
                 isProfit = true;
+                profitOrLoss = pa0 - pa1;
+            } else {
+                isProfit = false;
+                profitOrLoss = pa1 - pa0;
             }
-
-            profitOrLoss = pa1 - pa0;
         } else {
-            uint256 pa0 = position.amount0 * priceInTermsOfToken1AtExit;
-            uint256 pa1 = position.amount1;
-
-            if (pa0 < pa1) {
+            if (pa0 > pa1) {
                 isProfit = true;
+                profitOrLoss = pa0 - pa1;
+            } else {
+                isProfit = false;
+                profitOrLoss = pa1 - pa0;
             }
-
-            profitOrLoss = pa0 - pa1;
         }
 
         if (isProfit) {

@@ -79,7 +79,7 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
         _;
     }
 
-    constructor(address token_, address controller_, address owner_) Ownable(owner_) {
+    constructor(address token_, address controller_, address priceFeed_, address owner_) Ownable(owner_) {
         string memory deName = string.concat("deSync ", IERC20Metadata(token_).name());
         string memory deSymbol = string.concat("de", IERC20Metadata(token_).symbol());
 
@@ -90,6 +90,8 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
         deToken = new DEToken(deName, deSymbol, address(this), address(this), owner_);
         debtToken = new DebtToken(debtName, debtSymbol, address(this));
         controller = IController(controller_);
+
+        _chainlinkPriceFeed = AggregatorV3Interface(priceFeed_);
 
         _apy = 0;
         interestRatePerSecond = 0;
@@ -215,13 +217,16 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
         (, int256 answer,,,) = _chainlinkPriceFeed.latestRoundData();
 
         uint256 b = deToken.balanceOf(account_);
+
+        console.log("b: ", b);
+
         uint256 p = answer.toUint256();
 
         return (b * p * 1e18) / (10 ** (tokenDecimals + chainlinkDecimals));
     }
 
     function debtOf(address account_) external view override returns (uint256) {
-        return debtToken.balanceOf(account_);
+        return debtToken.balanceOf(account_) + borrowIntents[account_];
     }
 
     function debtOfInUSD(address account_) external view override returns (uint256) {
@@ -230,7 +235,7 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
 
         (, int256 answer,,,) = _chainlinkPriceFeed.latestRoundData();
 
-        uint256 b = debtToken.balanceOf(account_);
+        uint256 b = debtToken.balanceOf(account_) + borrowIntents[account_];
         uint256 p = answer.toUint256();
 
         return (b * p * 1e18) / (10 ** (tokenDecimals + chainlinkDecimals));
