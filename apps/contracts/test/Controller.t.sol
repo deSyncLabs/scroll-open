@@ -298,4 +298,18 @@ contract ControllerTest is Test {
         assertEq(ethDEToken.balanceOf(bob), 5 * 1e18);
         assertEq(ethDEToken.balanceOf(alice), 95 * 1e18);
     }
+
+    function test_onlyOwnerCanSetLiquidationThreshold() public {
+        vm.prank(alice);
+        vm.expectRevert();
+        controller.setLiquidationThreshold(0.9 * 1e27);
+    }
+
+    function test_changeLiquidationThreshold() public {
+        vm.startPrank(owner);
+        controller.setLiquidationThreshold(0.9 * 1e27);
+        vm.stopPrank();
+
+        assertEq(controller.liquidationThreshold(), 0.9 * 1e27);
+    }
 }

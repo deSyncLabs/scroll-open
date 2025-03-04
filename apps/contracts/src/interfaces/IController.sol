@@ -35,6 +35,8 @@ interface IController {
 
     function liquidate(address account_) external;
 
+    function setLiquidationThreshold(uint256 liquidationThreshold_) external;
+
     function poolFor(address token_) external view returns (address);
 
     function totalCollateralOfInUSD(address account_) external view returns (uint256);

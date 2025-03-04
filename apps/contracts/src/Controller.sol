@@ -131,6 +131,14 @@ contract Controller is IController, Ownable {
         }
     }
 
+    function setLiquidationThreshold(uint256 liquidationThreshold_) external override onlyOwner {
+        if (liquidationThreshold_ > RayMath.RAY) {
+            revert LiquidationThresholdMustBeLessThan100();
+        }
+
+        liquidationThreshold = liquidationThreshold_;
+    }
+
     function poolFor(address token_) external view override returns (address) {
         return address(_pools[token_]);
     }
