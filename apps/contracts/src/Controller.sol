@@ -7,7 +7,6 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {AggregatorV3Interface} from "@chainlink/interfaces/feeds/AggregatorV3Interface.sol";
 import {RayMath} from "lib/RayMath.sol";
-import {StratergyPool} from "./StratergyPool.sol";
 import {IPool} from "./interfaces/IPool.sol";
 import {IController} from "./interfaces/IController.sol";
 
@@ -25,38 +24,6 @@ contract Controller is IController, Ownable {
         }
 
         liquidationThreshold = liquidationThreshold_;
-    }
-
-    function createStartergyPool(
-        address token0_,
-        address token1_,
-        uint24 poolFee_,
-        address nonFungiblePositionManager_,
-        address swapRouter_,
-        address futuresMarket_,
-        address priceFeed_,
-        address owner_
-    ) external override onlyOwner returns (address) {
-        if (address(_pools[token0_]) != address(0)) {
-            revert PoolAlreadyExists();
-        }
-
-        _pools[token0_] = new StratergyPool(
-            token0_,
-            address(this),
-            owner_,
-            token1_,
-            poolFee_,
-            nonFungiblePositionManager_,
-            swapRouter_,
-            futuresMarket_,
-            priceFeed_
-        );
-        _poolList.push(_pools[token0_]);
-
-        emit PoolAdded(token0_, address(_pools[token0_]), block.timestamp);
-
-        return address(_pools[token0_]);
     }
 
     function addPool(address pool_) external override onlyOwner {

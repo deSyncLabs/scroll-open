@@ -13,10 +13,10 @@ import {IFuturesMarket} from "./interfaces/IFuturesMarket.sol";
 contract StratergyPool is Pool, IERC721Receiver {
     using TransferHelper for address;
 
-    address private _token0;
-    address private _token1;
+    address private immutable _token0;
+    address private immutable _token1;
 
-    uint24 private _poolFee;
+    uint24 private immutable _poolFee;
     uint256 private _tokenId;
     uint256 private _positionId;
     uint128 private _liquidity;

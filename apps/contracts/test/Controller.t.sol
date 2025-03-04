@@ -95,22 +95,23 @@ contract ControllerTest is Test {
             address(futuresMarket),
             address(priceFeeds[eth])
         );
-        vm.stopPrank();
 
-        vm.startPrank(owner);
-        address btcPoolAddress = controller.createStartergyPool(
+        btcPool = new StratergyPool(
             address(btc),
+            address(controller),
+            owner,
             address(usdc),
             ammPoolFee,
             address(nonFungiblePositionManager),
             address(swapRouter),
             address(futuresMarket),
-            address(priceFeeds[btc]),
-            owner
+            address(priceFeeds[btc])
         );
-        btcPool = StratergyPool(btcPoolAddress);
+        vm.stopPrank();
 
+        vm.startPrank(owner);
         controller.addPool(address(ethPool));
+        controller.addPool(address(btcPool));
         vm.stopPrank();
 
         ethDEToken = IDEToken(ethPool.deToken());
@@ -156,7 +157,7 @@ contract ControllerTest is Test {
         skip(1 days);
     }
 
-    function test_createStratergyPoolWorks() public view {
+    function test_poolOwnerWorks() public view {
         assertEq(controller.poolFor(address(btc)), address(btcPool));
         assertEq(btcPool.owner(), owner);
         assertEq(address(btcPool.token()), address(btc));
@@ -186,21 +187,6 @@ contract ControllerTest is Test {
         vm.prank(alice);
         vm.expectRevert();
         controller.addPool(address(1));
-    }
-
-    function test_nonOwnerCannotCreateStratergyPool() public {
-        vm.prank(alice);
-        vm.expectRevert();
-        controller.createStartergyPool(
-            address(usdc),
-            address(usdc),
-            ammPoolFee,
-            address(nonFungiblePositionManager),
-            address(swapRouter),
-            address(futuresMarket),
-            address(priceFeeds[usdc]),
-            owner
-        );
     }
 
     function test_borrowWithoutCollateral() public {

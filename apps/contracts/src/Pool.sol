@@ -16,14 +16,16 @@ import {IDEToken} from "./interfaces/IDEToken.sol";
 import {IDebtToken} from "./interfaces/IDebtToken.sol";
 import {IController} from "./interfaces/IController.sol";
 
+// TODO: Get rid of the DETOkens and DebtTokens deployments here
+
 abstract contract Pool is IPool, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
     using SafeCast for int256;
 
-    IERC20 public token;
-    IDEToken public deToken;
-    IDebtToken public debtToken;
-    IController public controller;
+    IERC20 public immutable token;
+    IDEToken public immutable deToken;
+    IDebtToken public immutable debtToken;
+    IController public immutable controller;
 
     uint256 private _apy;
     uint256 public interestRatePerSecond;
@@ -34,7 +36,7 @@ abstract contract Pool is IPool, ReentrancyGuard, Ownable {
 
     mapping(address user_ => uint256) private _lastDeposited;
 
-    AggregatorV3Interface private _chainlinkPriceFeed;
+    AggregatorV3Interface private immutable _chainlinkPriceFeed;
 
     mapping(address => uint256) public unlockIntents;
     mapping(address => uint256) public unlockIntentTimings;
