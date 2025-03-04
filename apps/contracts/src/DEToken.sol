@@ -41,7 +41,7 @@ contract DEToken is IDEToken, ERC20, ReentrancyGuard, Ownable {
     modifier noDebt(address user_) {
         IController controller = pool.controller();
 
-        if (controller.healthFactorFor(user_) >= type(uint256).max) {
+        if (controller.healthFactorFor(user_) < type(uint256).max) {
             revert DebtExists(controller.totalDebtOfInUSD(user_));
         }
 

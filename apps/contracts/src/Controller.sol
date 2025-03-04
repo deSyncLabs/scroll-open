@@ -10,7 +10,6 @@ import {RayMath} from "lib/RayMath.sol";
 import {StratergyPool} from "./StratergyPool.sol";
 import {IPool} from "./interfaces/IPool.sol";
 import {IController} from "./interfaces/IController.sol";
-import {console} from "forge-std/console.sol";
 
 contract Controller is IController, Ownable {
     using SafeCast for int256;
@@ -121,9 +120,6 @@ contract Controller is IController, Ownable {
         uint256 totalCollateral = totalCollateralOfInUSD(account_);
         uint256 totalDebt = totalDebtOfInUSD(account_);
 
-
-        console.log("totalCollateral: ", totalCollateral);
-        console.log("totalDebt: ", totalDebt);
         if (_calculateHealthFactor(totalCollateral, totalDebt) > RayMath.RAY) {
             revert LiquidationThresholdNotReached();
         }

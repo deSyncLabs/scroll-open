@@ -278,4 +278,24 @@ contract ControllerTest is Test {
 
         assertLt(controller.healthFactorFor(alice), 1e27);
     }
+
+    function test_transferDETokensWhenYouHaveDebt() public {
+        vm.startPrank(alice);
+        btcPool.deposit(1 * 1e18);
+        controller.borrow(address(eth), 10 * 1e18);
+
+        vm.expectRevert();
+        ethDEToken.transfer(bob, 5 * 1e18);
+        vm.stopPrank();
+    }
+
+    function test_transferDETokens() public {
+        vm.startPrank(alice);
+        ethPool.deposit(100 * 1e18);
+        ethDEToken.transfer(bob, 5 * 1e18);
+        vm.stopPrank();
+
+        assertEq(ethDEToken.balanceOf(bob), 5 * 1e18);
+        assertEq(ethDEToken.balanceOf(alice), 95 * 1e18);
+    }
 }
