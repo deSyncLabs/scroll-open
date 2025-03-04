@@ -1,201 +1,201 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.20;
+// // SPDX-License-Identifier: UNLICENSED
+// pragma solidity ^0.8.20;
 
-import {Script, console} from "forge-std/Script.sol";
-import {MockMintableERC20} from "src/mocks/MockMintableERC20.sol";
-import {MockNonFungiblePositionManager} from "src/mocks/MockNonFungiblePositionManager.sol";
-import {MockSwapRouter} from "src/mocks/MockSwapRouter.sol";
-import {MockFuturesMarket} from "src/mocks/MockFuturesMarket.sol";
-import {StratergyPool} from "src/StratergyPool.sol";
-import {Controller} from "src/Controller.sol";
-import {AggregatorV3Interface} from "@chainlink/interfaces/feeds/AggregatorV3Interface.sol";
+// import {Script, console} from "forge-std/Script.sol";
+// import {MockMintableERC20} from "src/mocks/MockMintableERC20.sol";
+// import {MockNonFungiblePositionManager} from "src/mocks/MockNonFungiblePositionManager.sol";
+// import {MockSwapRouter} from "src/mocks/MockSwapRouter.sol";
+// import {MockFuturesMarket} from "src/mocks/MockFuturesMarket.sol";
+// import {StratergyPool} from "src/StratergyPool.sol";
+// import {Controller} from "src/Controller.sol";
+// import {AggregatorV3Interface} from "@chainlink/interfaces/feeds/AggregatorV3Interface.sol";
 
-contract DeployScript is Script {
-    address deployer;
-    address admin;
+// contract DeployScript is Script {
+//     address deployer;
+//     address admin;
 
-    uint256 liquidationThreshold;
-    uint256 interestRate;
-    uint24 ammPoolFee;
+//     uint256 liquidationThreshold;
+//     uint256 interestRate;
+//     uint24 ammPoolFee;
 
-    MockMintableERC20 eth;
-    MockMintableERC20 btc;
-    MockMintableERC20 usdc;
-    MockMintableERC20 usdt;
+//     MockMintableERC20 eth;
+//     MockMintableERC20 btc;
+//     MockMintableERC20 usdc;
+//     MockMintableERC20 usdt;
 
-    AggregatorV3Interface ethPriceFeed;
-    AggregatorV3Interface btcPriceFeed;
-    AggregatorV3Interface usdcPriceFeed;
-    AggregatorV3Interface usdtPriceFeed;
+//     AggregatorV3Interface ethPriceFeed;
+//     AggregatorV3Interface btcPriceFeed;
+//     AggregatorV3Interface usdcPriceFeed;
+//     AggregatorV3Interface usdtPriceFeed;
 
-    MockNonFungiblePositionManager nonFungiblePositionManager;
-    MockSwapRouter swapRouter;
-    MockFuturesMarket futuresMarket;
+//     MockNonFungiblePositionManager nonFungiblePositionManager;
+//     MockSwapRouter swapRouter;
+//     MockFuturesMarket futuresMarket;
 
-    StratergyPool ethPool;
-    StratergyPool btcPool;
-    StratergyPool usdcPool;
+//     StratergyPool ethPool;
+//     StratergyPool btcPool;
+//     StratergyPool usdcPool;
 
-    Controller controller;
+//     Controller controller;
 
-    function run() public {
-        uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
-        uint256 adminPrivateKey = vm.envUint("ADMIN_PRIVATE_KEY");
+//     function run() public {
+//         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
+//         uint256 adminPrivateKey = vm.envUint("ADMIN_PRIVATE_KEY");
 
-        deployer = vm.addr(deployerPrivateKey);
-        admin = vm.addr(adminPrivateKey);
+//         deployer = vm.addr(deployerPrivateKey);
+//         admin = vm.addr(adminPrivateKey);
 
-        liquidationThreshold = 0.95 * 1e27; // 95% -> 0.95 -> to Ray -> 0.95 * 1e27 -> 1e26
-        interestRate = 0.1 * 1e27; // 10% -> 0.10 -> to Ray -> 0.1 * 1e27 -> 1e26
-        ammPoolFee = 0;
+//         liquidationThreshold = 0.95 * 1e27; // 95% -> 0.95 -> to Ray -> 0.95 * 1e27 -> 1e26
+//         interestRate = 0.1 * 1e27; // 10% -> 0.10 -> to Ray -> 0.1 * 1e27 -> 1e26
+//         ammPoolFee = 0;
 
-        console.log("Deploying all contracts");
+//         console.log("Deploying all contracts");
 
-        vm.startBroadcast(deployer);
+//         vm.startBroadcast(deployer);
 
-        eth = new MockMintableERC20("Ether", "ETH", 1 * 1e18, admin);
-        btc = new MockMintableERC20("Bitcoin", "BTC", 0.1 * 1e18, admin);
-        usdc = new MockMintableERC20("USD Coin", "USDC", 2000 * 1e18, admin);
-        usdt = new MockMintableERC20("Tether", "USDT", 2000 * 1e18, admin);
+//         eth = new MockMintableERC20("Ether", "ETH", 1 * 1e18, admin);
+//         btc = new MockMintableERC20("Bitcoin", "BTC", 0.1 * 1e18, admin);
+//         usdc = new MockMintableERC20("USD Coin", "USDC", 2000 * 1e18, admin);
+//         usdt = new MockMintableERC20("Tether", "USDT", 2000 * 1e18, admin);
 
-        vm.stopBroadcast();
+//         vm.stopBroadcast();
 
-        address ethPriceFeedAddress = vm.envAddress("ETH_USD_PRICE_FEED");
-        address btcPriceFeedAddress = vm.envAddress("BTC_USD_PRICE_FEED");
-        address usdcPriceFeedAddress = vm.envAddress("USDC_USD_PRICE_FEED");
-        address usdtPriceFeedAddress = vm.envAddress("USDT_USD_PRICE_FEED");
+//         address ethPriceFeedAddress = vm.envAddress("ETH_USD_PRICE_FEED");
+//         address btcPriceFeedAddress = vm.envAddress("BTC_USD_PRICE_FEED");
+//         address usdcPriceFeedAddress = vm.envAddress("USDC_USD_PRICE_FEED");
+//         address usdtPriceFeedAddress = vm.envAddress("USDT_USD_PRICE_FEED");
 
-        ethPriceFeed = AggregatorV3Interface(ethPriceFeedAddress);
-        btcPriceFeed = AggregatorV3Interface(btcPriceFeedAddress);
-        usdcPriceFeed = AggregatorV3Interface(usdcPriceFeedAddress);
-        usdtPriceFeed = AggregatorV3Interface(usdtPriceFeedAddress);
+//         ethPriceFeed = AggregatorV3Interface(ethPriceFeedAddress);
+//         btcPriceFeed = AggregatorV3Interface(btcPriceFeedAddress);
+//         usdcPriceFeed = AggregatorV3Interface(usdcPriceFeedAddress);
+//         usdtPriceFeed = AggregatorV3Interface(usdtPriceFeedAddress);
 
-        // vm.broadcast(deployer);
-        // nonFungiblePositionManager = new MockNonFungiblePositionManager(0, admin);
+//         // vm.broadcast(deployer);
+//         // nonFungiblePositionManager = new MockNonFungiblePositionManager(0, admin);
 
-        // address[] memory _tokens = new address[](4);
-        // _tokens[0] = address(eth);
-        // _tokens[1] = address(btc);
-        // _tokens[2] = address(usdc);
-        // _tokens[3] = address(usdt);
+//         // address[] memory _tokens = new address[](4);
+//         // _tokens[0] = address(eth);
+//         // _tokens[1] = address(btc);
+//         // _tokens[2] = address(usdc);
+//         // _tokens[3] = address(usdt);
 
-        // address[] memory _priceFeeds = new address[](4);
-        // _priceFeeds[0] = address(ethPriceFeed);
-        // _priceFeeds[1] = address(btcPriceFeed);
-        // _priceFeeds[2] = address(usdcPriceFeed);
-        // _priceFeeds[3] = address(usdtPriceFeed);
+//         // address[] memory _priceFeeds = new address[](4);
+//         // _priceFeeds[0] = address(ethPriceFeed);
+//         // _priceFeeds[1] = address(btcPriceFeed);
+//         // _priceFeeds[2] = address(usdcPriceFeed);
+//         // _priceFeeds[3] = address(usdtPriceFeed);
 
-        // vm.broadcast(deployer);
-        // swapRouter = new MockSwapRouter(_tokens, _priceFeeds, admin);
+//         // vm.broadcast(deployer);
+//         // swapRouter = new MockSwapRouter(_tokens, _priceFeeds, admin);
 
-        // vm.broadcast(deployer);
-        // futuresMarket = new MockFuturesMarket(_tokens, _priceFeeds, admin);
+//         // vm.broadcast(deployer);
+//         // futuresMarket = new MockFuturesMarket(_tokens, _priceFeeds, admin);
 
-        // vm.broadcast(deployer);
-        // controller = new Controller(liquidationThreshold, admin);
+//         // vm.broadcast(deployer);
+//         // controller = new Controller(liquidationThreshold, admin);
 
-        vm.broadcast(deployer);
-        ethPool = new StratergyPool(
-            address(eth),
-            address(controller),
-            admin,
-            address(usdc),
-            ammPoolFee,
-            address(nonFungiblePositionManager),
-            address(swapRouter),
-            address(futuresMarket),
-            address(ethPriceFeed)
-        );
+//         vm.broadcast(deployer);
+//         ethPool = new StratergyPool(
+//             address(eth),
+//             address(controller),
+//             admin,
+//             address(usdc),
+//             ammPoolFee,
+//             address(nonFungiblePositionManager),
+//             address(swapRouter),
+//             address(futuresMarket),
+//             address(ethPriceFeed)
+//         );
 
-        // vm.broadcast(deployer);
-        // btcPool = new StratergyPool(
-        //     address(btc),
-        //     address(controller),
-        //     admin,
-        //     address(usdc),
-        //     ammPoolFee,
-        //     address(nonFungiblePositionManager),
-        //     address(swapRouter),
-        //     address(futuresMarket),
-        //     address(btcPriceFeed)
-        // );
+//         // vm.broadcast(deployer);
+//         // btcPool = new StratergyPool(
+//         //     address(btc),
+//         //     address(controller),
+//         //     admin,
+//         //     address(usdc),
+//         //     ammPoolFee,
+//         //     address(nonFungiblePositionManager),
+//         //     address(swapRouter),
+//         //     address(futuresMarket),
+//         //     address(btcPriceFeed)
+//         // );
 
-        // vm.broadcast(deployer);
-        // usdcPool = new StratergyPool(
-        //     address(usdc),
-        //     address(controller),
-        //     admin,
-        //     address(usdt),
-        //     ammPoolFee,
-        //     address(nonFungiblePositionManager),
-        //     address(swapRouter),
-        //     address(futuresMarket),
-        //     address(usdcPriceFeed)
-        // );
+//         // vm.broadcast(deployer);
+//         // usdcPool = new StratergyPool(
+//         //     address(usdc),
+//         //     address(controller),
+//         //     admin,
+//         //     address(usdt),
+//         //     ammPoolFee,
+//         //     address(nonFungiblePositionManager),
+//         //     address(swapRouter),
+//         //     address(futuresMarket),
+//         //     address(usdcPriceFeed)
+//         // );
 
-        // console.log("Deployed all contracts");
+//         // console.log("Deployed all contracts");
 
-        // console.log("ETH: ", address(eth));
-        // console.log("BTC: ", address(btc));
-        // console.log("USDC: ", address(usdc));
-        // console.log("USDT: ", address(usdt));
+//         // console.log("ETH: ", address(eth));
+//         // console.log("BTC: ", address(btc));
+//         // console.log("USDC: ", address(usdc));
+//         // console.log("USDT: ", address(usdt));
 
-        // console.log("ETH Pool: ", address(ethPool));
-        // console.log("BTC Pool: ", address(btcPool));
-        // console.log("USDC Pool: ", address(usdcPool));
+//         // console.log("ETH Pool: ", address(ethPool));
+//         // console.log("BTC Pool: ", address(btcPool));
+//         // console.log("USDC Pool: ", address(usdcPool));
 
-        // console.log("Controller: ", address(controller));
+//         // console.log("Controller: ", address(controller));
 
-        // console.log("Adding Pools and giving permissions to the contracts");
+//         // console.log("Adding Pools and giving permissions to the contracts");
 
-        // vm.startBroadcast(admin);
+//         // vm.startBroadcast(admin);
 
-        // controller.addPool(address(ethPool));
-        // controller.addPool(address(btcPool));
-        // controller.addPool(address(usdcPool));
+//         // controller.addPool(address(ethPool));
+//         // controller.addPool(address(btcPool));
+//         // controller.addPool(address(usdcPool));
 
-        // vm.stopBroadcast();
+//         // vm.stopBroadcast();
 
-        // vm.startBroadcast(admin);
+//         // vm.startBroadcast(admin);
 
-        // eth._addMinterBurner(address(swapRouter));
-        // btc._addMinterBurner(address(swapRouter));
-        // usdc._addMinterBurner(address(swapRouter));
-        // usdt._addMinterBurner(address(swapRouter));
+//         // eth._addMinterBurner(address(swapRouter));
+//         // btc._addMinterBurner(address(swapRouter));
+//         // usdc._addMinterBurner(address(swapRouter));
+//         // usdt._addMinterBurner(address(swapRouter));
 
-        // eth._addMinterBurner(address(nonFungiblePositionManager));
-        // btc._addMinterBurner(address(nonFungiblePositionManager));
-        // usdc._addMinterBurner(address(nonFungiblePositionManager));
-        // usdt._addMinterBurner(address(nonFungiblePositionManager));
+//         // eth._addMinterBurner(address(nonFungiblePositionManager));
+//         // btc._addMinterBurner(address(nonFungiblePositionManager));
+//         // usdc._addMinterBurner(address(nonFungiblePositionManager));
+//         // usdt._addMinterBurner(address(nonFungiblePositionManager));
 
-        // eth._addMinterBurner(address(futuresMarket));
-        // btc._addMinterBurner(address(futuresMarket));
-        // usdc._addMinterBurner(address(futuresMarket));
-        // usdt._addMinterBurner(address(futuresMarket));
+//         // eth._addMinterBurner(address(futuresMarket));
+//         // btc._addMinterBurner(address(futuresMarket));
+//         // usdc._addMinterBurner(address(futuresMarket));
+//         // usdt._addMinterBurner(address(futuresMarket));
 
-        // eth._addMinterBurner(admin);
-        // btc._addMinterBurner(admin);
-        // usdc._addMinterBurner(admin);
+//         // eth._addMinterBurner(admin);
+//         // btc._addMinterBurner(admin);
+//         // usdc._addMinterBurner(admin);
 
-        // vm.stopBroadcast();
+//         // vm.stopBroadcast();
 
-        // vm.startBroadcast(admin);
+//         // vm.startBroadcast(admin);
 
-        // futuresMarket._addAuthorized(address(ethPool));
-        // futuresMarket._addAuthorized(address(btcPool));
-        // futuresMarket._addAuthorized(address(usdcPool));
+//         // futuresMarket._addAuthorized(address(ethPool));
+//         // futuresMarket._addAuthorized(address(btcPool));
+//         // futuresMarket._addAuthorized(address(usdcPool));
 
-        // vm.stopBroadcast();
+//         // vm.stopBroadcast();
 
-        // vm.startBroadcast(admin);
+//         // vm.startBroadcast(admin);
 
-        // eth._mint_(address(ethPool), 100000 * 1e18);
-        // btc._mint_(address(btcPool), 10000 * 1e18);
-        // usdc._mint_(address(usdcPool), 50000000 * 1e6);
+//         // eth._mint_(address(ethPool), 100000 * 1e18);
+//         // btc._mint_(address(btcPool), 10000 * 1e18);
+//         // usdc._mint_(address(usdcPool), 50000000 * 1e6);
 
-        // vm.stopBroadcast();
+//         // vm.stopBroadcast();
 
-        // console.log("Permissions given to the contracts");
-        // console.log("Added liquidity to the pools");
-    }
-}
+//         // console.log("Permissions given to the contracts");
+//         // console.log("Added liquidity to the pools");
+//     }
+// }

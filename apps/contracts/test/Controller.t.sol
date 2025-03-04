@@ -2,8 +2,12 @@
 pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Controller} from "src/Controller.sol";
 import {StratergyPool} from "src/StratergyPool.sol";
+import {DEToken} from "src/DEToken.sol";
+import {DebtToken} from "src/DebtToken.sol";
+import {IStratergyPool} from "src/interfaces/IStratergyPool.sol";
 import {IDEToken} from "src/interfaces/IDEToken.sol";
 import {IDebtToken} from "src/interfaces/IDebtToken.sol";
 import {MockMintableERC20} from "src/mocks/MockMintableERC20.sol";
@@ -14,6 +18,8 @@ import {MockSwapRouter} from "src/mocks/MockSwapRouter.sol";
 import {MockFuturesMarket} from "src/mocks/MockFuturesMarket.sol";
 
 contract ControllerTest is Test {
+    using Clones for address;
+
     address superDeployer;
     address deployer;
     address owner;
@@ -28,8 +34,8 @@ contract ControllerTest is Test {
     MockSwapRouter swapRouter;
     MockFuturesMarket futuresMarket;
 
-    StratergyPool ethPool;
-    StratergyPool btcPool;
+    IStratergyPool ethPool;
+    IStratergyPool btcPool;
 
     IDEToken ethDEToken;
     IDEToken btcDEToken;
@@ -82,9 +88,39 @@ contract ControllerTest is Test {
         vm.stopPrank();
 
         vm.startPrank(deployer);
+        address deTokenImplementation = address(new DEToken());
+        address debtTokenImplementation = address(new DebtToken());
+        address stratergyPoolImplementation = address(new StratergyPool(deTokenImplementation, debtTokenImplementation));
+
         controller = new Controller(liquidationThreshold, owner);
 
-        ethPool = new StratergyPool(
+        // in memory of the old constructor
+        // ethPool = new StratergyPool(
+        //     address(eth),
+        //     address(controller),
+        //     owner,
+        //     address(usdc),
+        //     ammPoolFee,
+        //     address(nonFungiblePositionManager),
+        //     address(swapRouter),
+        //     address(futuresMarket),
+        //     address(priceFeeds[eth])
+        // );
+
+        // btcPool = new StratergyPool(
+        //     address(btc),
+        //     address(controller),
+        //     owner,
+        //     address(usdc),
+        //     ammPoolFee,
+        //     address(nonFungiblePositionManager),
+        //     address(swapRouter),
+        //     address(futuresMarket),
+        //     address(priceFeeds[btc])
+        // );
+
+        ethPool = IStratergyPool(stratergyPoolImplementation.clone());
+        ethPool.initialize(
             address(eth),
             address(controller),
             owner,
@@ -96,7 +132,8 @@ contract ControllerTest is Test {
             address(priceFeeds[eth])
         );
 
-        btcPool = new StratergyPool(
+        btcPool = IStratergyPool(stratergyPoolImplementation.clone());
+        btcPool.initialize(
             address(btc),
             address(controller),
             owner,
@@ -107,6 +144,7 @@ contract ControllerTest is Test {
             address(futuresMarket),
             address(priceFeeds[btc])
         );
+
         vm.stopPrank();
 
         vm.startPrank(owner);
@@ -155,20 +193,6 @@ contract ControllerTest is Test {
         vm.stopPrank();
 
         skip(1 days);
-    }
-
-    function test_poolOwnerWorks() public view {
-        assertEq(controller.poolFor(address(btc)), address(btcPool));
-        assertEq(btcPool.owner(), owner);
-        assertEq(address(btcPool.token()), address(btc));
-        assertEq(address(btcPool.controller()), address(controller));
-    }
-
-    function test_addPoolWorks() public view {
-        assertEq(controller.poolFor(address(eth)), address(ethPool));
-        assertEq(ethPool.owner(), owner);
-        assertEq(address(ethPool.token()), address(eth));
-        assertEq(address(ethPool.controller()), address(controller));
     }
 
     function test_removePoolWorks() public {

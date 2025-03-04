@@ -2,9 +2,12 @@
 pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {StratergyPool} from "src/StratergyPool.sol";
 import {IDEToken} from "src/interfaces/IDEToken.sol";
 import {IDebtToken} from "src/interfaces/IDebtToken.sol";
+import {DEToken} from "src/DEToken.sol";
+import {DebtToken} from "src/DebtToken.sol";
 import {MockMintableERC20} from "src/mocks/MockMintableERC20.sol";
 import {MockNonFungiblePositionManager} from "src/mocks/MockNonFungiblePositionManager.sol";
 import {MockAggregatorV3} from "src/mocks/MockAggregatorV3.sol";
@@ -12,6 +15,8 @@ import {MockSwapRouter} from "src/mocks/MockSwapRouter.sol";
 import {MockFuturesMarket} from "src/mocks/MockFuturesMarket.sol";
 
 contract StratergyPoolTest is Test {
+    using Clones for address;
+
     address superDeployer;
     address deployer;
     address owner;
@@ -65,7 +70,25 @@ contract StratergyPoolTest is Test {
         vm.stopPrank();
 
         vm.startPrank(deployer);
-        pool = new StratergyPool(
+        address deTokenImplementation = address(new DEToken());
+        address debtTokenImplementation = address(new DebtToken());
+        address poolImplementation = address(new StratergyPool(deTokenImplementation, debtTokenImplementation));
+
+        // in memory of the old constructor
+        // pool = new StratergyPool(
+        //     address(eth),
+        //     deployer,
+        //     owner,
+        //     address(usdc),
+        //     ammPoolFee,
+        //     address(nonFungiblePositionManager),
+        //     address(swapRouter),
+        //     address(futuresMarket),
+        //     address(priceFeeds[eth])
+        // );
+
+        pool = StratergyPool(poolImplementation.clone());
+        pool.initialize(
             address(eth),
             deployer,
             owner,
