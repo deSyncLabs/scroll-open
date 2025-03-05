@@ -29,6 +29,8 @@ contract MockMintableERC20 is IMintableERC20, ERC20, AccessControl {
             revert CanMintOnlyOncePerDay(_lastMintedTimestamp[_msgSender()], timeElapsed);
         }
 
+        _lastMintedTimestamp[_msgSender()] = block.timestamp;
+
         super._mint(_msgSender(), _mintAmount);
     }
 
@@ -46,6 +48,10 @@ contract MockMintableERC20 is IMintableERC20, ERC20, AccessControl {
 
     function _setAmmPool(address ammPool_) external override onlyRole(OWNER_ROLE) {
         ammPool = ammPool_;
+    }
+
+    function mintAmount() external view override returns (uint256) {
+        return _mintAmount;
     }
 
     function lastMintedTimestamp(address account_) external view override returns (uint256) {

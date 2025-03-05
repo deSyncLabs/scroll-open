@@ -18,5 +18,7 @@ interface IMintableERC20 is IERC20 {
 
     function ammPool() external view returns (address);
 
+    function mintAmount() external view returns (uint256);
+
     function lastMintedTimestamp(address account_) external view returns (uint256);
 }
