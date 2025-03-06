@@ -27,6 +27,7 @@ export function Overview() {
                 </div>
             </div>
 
+        {/* TODO: Add "i" button */}
             <div className="p-4 flex justify-between items-center">
                 <div>
                     <p className="text-muted-foreground text-lg">

@@ -9,8 +9,21 @@ import {
 } from "@/components/ui/table";
 import { SupplyCard } from "@/components/supply-card";
 import { assets } from "@/shared/assets";
+import { SuppliedCard } from "@/components/supplied-card";
+
+// TODO: Refetch everything when the user deposits or withdraws
 
 export default function SupplyPage() {
+    const suppliedCards = assets.map((asset) => (
+        <SuppliedCard
+            key={asset.address}
+            symbol={asset.symbol}
+            icon={asset.icon}
+            deTokenAddress={asset.deTokenAddress}
+            poolAddress={asset.poolAddress}
+        />
+    ));
+
     return (
         <div className="space-y-8">
             <Overview />
@@ -55,11 +68,26 @@ export default function SupplyPage() {
                             Assets Supplied
                         </h2>
 
-                        <div>
+                        {suppliedCards.length > 0 ? (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Asset</TableHead>
+                                        <TableHead>Deposited</TableHead>
+                                        <TableHead>Interest</TableHead>
+                                        <TableHead className="text-right">
+                                            Action
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+
+                                <TableBody>{suppliedCards}</TableBody>
+                            </Table>
+                        ) : (
                             <p className="text-muted-foreground">
                                 You haven't supplied anything yet
                             </p>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>

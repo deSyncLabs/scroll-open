@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
     useAccount,
     useReadContracts,
@@ -8,11 +8,11 @@ import {
     useWaitForTransactionReceipt,
 } from "wagmi";
 import { formatEther, parseEther } from "viem";
-import { LoaderCircle, CircleCheck } from "lucide-react";
-import { mintableERC20ABI, poolABI } from "@/shared/abis";
-import { TableRow, TableCell } from "./ui/table";
+import { LoaderCircle, Clock } from "lucide-react";
+import { deTokenABI, poolABI } from "@/shared/abis";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { TableRow, TableCell } from "./ui/table";
 import {
     Dialog,
     DialogContent,
@@ -30,36 +30,36 @@ import {
     StepperTitle,
 } from "./ui/stepper";
 
-type SupplyCardProps = {
+type SuppliedCardProps = {
     symbol: string;
     icon: string;
-    tokenAddress: `0x${string}`;
+    deTokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
 };
 
-type SupplyDialogProps = {
+type WithdrawDialogProps = {
     step: number;
     setStep: (step: number) => void;
     symbol: string;
-    account: `0x${string}`;
-    tokenAddress: `0x${string}`;
+    account: string;
+    deTokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
 };
 
 type StepProps = {
     symbol: string;
-    account: `0x${string}`;
-    tokenAddress: `0x${string}`;
+    account: string;
+    deTokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
     setStep: (step: number) => void;
 };
 
-export function SupplyCard({
+export function SuppliedCard({
     symbol,
     icon,
-    tokenAddress,
+    deTokenAddress,
     poolAddress,
-}: SupplyCardProps) {
+}: SuppliedCardProps) {
     const [step, setStep] = useState(1);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -68,8 +68,8 @@ export function SupplyCard({
     const data = useReadContracts({
         contracts: [
             {
-                address: tokenAddress,
-                abi: mintableERC20ABI,
+                address: deTokenAddress,
+                abi: deTokenABI,
                 functionName: "balanceOf",
                 args: [account],
             },
@@ -87,6 +87,22 @@ export function SupplyCard({
             ? (data.data[1].result as bigint)
             : BigInt(0);
     const apy = Number((raypy * BigInt(100)) / RAY);
+
+    if (data.isFetching) {
+        return (
+            <TableRow>
+                <TableCell>
+                    <div>
+                        <LoaderCircle className="animate-spin" />
+                    </div>
+                </TableCell>
+            </TableRow>
+        );
+    }
+
+    if (data.data && !data.data[0].result) {
+        return null;
+    }
 
     return (
         <TableRow>
@@ -115,18 +131,19 @@ export function SupplyCard({
                     open={isDialogOpen}
                     onOpenChange={(open) => {
                         setIsDialogOpen(open);
-                        if (!open) setStep(1);
                     }}
                 >
                     <DialogTrigger asChild>
-                        <Button className="hover:cursor-pointer">Supply</Button>
+                        <Button className="hover:cursor-pointer">
+                            Withdraw
+                        </Button>
                     </DialogTrigger>
-                    <SupplyDialog
+                    <WithdrawDialog
                         step={step}
                         setStep={setStep}
                         symbol={symbol}
                         account={account!}
-                        tokenAddress={tokenAddress}
+                        deTokenAddress={deTokenAddress}
                         poolAddress={poolAddress}
                     />
                 </Dialog>
@@ -135,33 +152,26 @@ export function SupplyCard({
     );
 }
 
-function SupplyDialog({
+function WithdrawDialog({
     step,
     setStep,
     symbol,
     account,
-    tokenAddress,
+    deTokenAddress,
     poolAddress,
-}: SupplyDialogProps) {
+}: WithdrawDialogProps) {
     const steps = [
         {
             step: 1,
-            dialogTitle: `Please approve deSync to spend your ${symbol}`,
-            dialogDescription: `deSync needs your approval to spend your ${symbol} on your behalf.`,
-            component: ApproveStep,
-            stepTitle: "Approve",
+            dialogTitle: "Withdraw",
+            dialogDescription: "Withdraw your funds from the pool",
+            component: WithdrawStep,
+            stepTitle: "Withdraw",
         },
         {
             step: 2,
-            dialogTitle: `Supply ${symbol}`,
-            dialogDescription: `Assets you supply not only earn yeild but also double as collateral.`,
-            component: SupplyStep,
-            stepTitle: "Supply",
-        },
-        {
-            step: 3,
-            dialogTitle: `Done`,
-            dialogDescription: `You have successfully supplied ${symbol}.`,
+            dialogTitle: "Done",
+            dialogDescription: "Withdraw intent has been submitted",
             component: DoneStep,
             stepTitle: "Done",
         },
@@ -187,7 +197,7 @@ function SupplyDialog({
                     <currentStep.component
                         symbol={symbol}
                         account={account}
-                        tokenAddress={tokenAddress}
+                        deTokenAddress={deTokenAddress}
                         poolAddress={poolAddress}
                         setStep={setStep}
                     />
@@ -195,7 +205,7 @@ function SupplyDialog({
             )}
 
             <DialogFooter>
-                <Stepper className="flex justify-between" value={step}>
+                <Stepper className="flex justify-center gap-4" value={step}>
                     {steps.map(({ step, stepTitle: title }) => (
                         <StepperItem step={step} key={step} className="">
                             <div className="flex items-center gap-2">
@@ -214,119 +224,23 @@ function SupplyDialog({
     );
 }
 
-function ApproveStep({
+function WithdrawStep({
     symbol,
     account,
-    tokenAddress,
-    poolAddress,
-    setStep,
-}: StepProps) {
-    const MAX_ALLOWANCE = BigInt(
-        "115792089237316195423570985008687907853269984665640564039457584007913129639935"
-    );
-
-    const isMounted = useRef(true);
-
-    const [approving, setApproving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const data = useReadContracts({
-        contracts: [
-            {
-                address: tokenAddress,
-                abi: mintableERC20ABI,
-                functionName: "allowance",
-                args: [account, poolAddress],
-            },
-        ],
-    });
-
-    const approve = useWriteContract({
-        mutation: {
-            onMutate: () => {
-                setError(null);
-                setApproving(true);
-            },
-            onError: ({ name }) => {
-                setError(name);
-                setApproving(false);
-            },
-        },
-    });
-
-    const receipt = useWaitForTransactionReceipt({ hash: approve.data });
-
-    useEffect(() => {
-        if (receipt.status === "success") {
-            setApproving(false);
-            setStep(2);
-        } else if (receipt.status === "error") {
-            setApproving(false);
-
-            if (receipt.error) setError(receipt.error.name);
-        }
-    }, [receipt.status]);
-
-    async function handleApprove() {
-        try {
-            await approve.writeContractAsync({
-                abi: mintableERC20ABI,
-                address: tokenAddress,
-                functionName: "approve",
-                args: [poolAddress, MAX_ALLOWANCE],
-            });
-        } catch (error) {}
-    }
-
-    useEffect(() => {
-        if (
-            data.data &&
-            data.data[0].result &&
-            (data.data[0].result as bigint) >= MAX_ALLOWANCE &&
-            isMounted.current
-        ) {
-            setStep(2);
-        }
-    }, [data.data, setStep]);
-
-    if (data.isFetching) return <LoaderCircle className="animate-spin" />;
-
-    return (
-        <div className="flex flex-col items-center gap-4">
-            <Button
-                onClick={handleApprove}
-                className="w-full hover:cursor-pointer"
-                disabled={approving}
-            >
-                {approving ? (
-                    <LoaderCircle className="animate-spin" />
-                ) : (
-                    "Approve"
-                )}
-            </Button>
-
-            {error && <div className="text-red-500">{error}</div>}
-        </div>
-    );
-}
-
-function SupplyStep({
-    symbol,
-    account,
-    tokenAddress,
+    deTokenAddress,
     poolAddress,
     setStep,
 }: StepProps) {
     const [amount, setAmount] = useState<string>("");
     const [validAmount, setValidAmount] = useState(false);
-    const [supplying, setSupplying] = useState(false);
+    const [withdrawing, setWithdrawing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const data = useReadContracts({
         contracts: [
             {
-                address: tokenAddress,
-                abi: mintableERC20ABI,
+                address: deTokenAddress,
+                abi: deTokenABI,
                 functionName: "balanceOf",
                 args: [account],
             },
@@ -346,27 +260,27 @@ function SupplyStep({
         }
     }, [amount, data.data]);
 
-    const supply = useWriteContract({
+    const withdraw = useWriteContract({
         mutation: {
             onMutate: () => {
                 setError(null);
-                setSupplying(true);
+                setWithdrawing(true);
             },
             onError: ({ name }) => {
                 setError(name);
-                setSupplying(false);
+                setWithdrawing(false);
             },
         },
     });
 
-    const receipt = useWaitForTransactionReceipt({ hash: supply.data });
+    const receipt = useWaitForTransactionReceipt({ hash: withdraw.data });
 
     useEffect(() => {
         if (receipt.status === "success") {
-            setSupplying(false);
-            setStep(3);
+            setWithdrawing(false);
+            setStep(2);
         } else if (receipt.status === "error") {
-            setSupplying(false);
+            setWithdrawing(false);
 
             console.log(receipt.error);
 
@@ -394,17 +308,15 @@ function SupplyStep({
         }
     }
 
-    async function handleSupply() {
+    async function handleWithdraw() {
         try {
-            await supply.writeContractAsync({
+            await withdraw.writeContractAsync({
                 abi: poolABI,
                 address: poolAddress,
-                functionName: "deposit",
+                functionName: "unlock",
                 args: [parseEther(amount)],
             });
-        } catch (error) {
-            console.log(error);
-        }
+        } catch (error) {}
     }
 
     return (
@@ -438,13 +350,13 @@ function SupplyStep({
 
             <Button
                 className="w-full hover:cursor-pointer"
-                disabled={data.isFetching || !validAmount || supplying}
-                onClick={handleSupply}
+                disabled={data.isFetching || !validAmount || withdrawing}
+                onClick={handleWithdraw}
             >
-                {supplying ? (
+                {withdrawing ? (
                     <LoaderCircle className="animate-spin" />
                 ) : (
-                    "Supply"
+                    "Withdraw"
                 )}
             </Button>
 
@@ -456,9 +368,9 @@ function SupplyStep({
 function DoneStep(_: StepProps) {
     return (
         <div className="flex flex-col items-center gap-2">
-            <CircleCheck className="stroke-green-500" size={50} />
+            <Clock className="stroke-green-500" size={50} />
             <p className="text-muted-foreground text-lg text-center">
-                Your transactoin was successful.
+                Please wait upto 24 hours for your funds to be unlocked
             </p>
         </div>
     );

@@ -165,6 +165,14 @@ contract DeployScript is Script {
         console.log("BTC Pool: ", address(btcPool));
         console.log("USDC Pool: ", address(usdcPool));
 
+        console.log("ETH deToken: ", address(ethPool.deToken()));
+        console.log("BTC deToken: ", address(btcPool.deToken()));
+        console.log("USDC deToken: ", address(usdcPool.deToken()));
+
+        console.log("ETH debtToken: ", address(ethPool.debtToken()));
+        console.log("BTC debtToken: ", address(btcPool.debtToken()));
+        console.log("USDC debtToken: ", address(usdcPool.debtToken()));
+
         console.log("Controller: ", address(controller));
 
         console.log("Adding Pools and giving permissions to the contracts");
