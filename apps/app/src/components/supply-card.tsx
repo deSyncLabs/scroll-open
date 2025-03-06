@@ -109,7 +109,13 @@ export function SupplyCard({
                     "0"
                 )}
             </TableCell>
-            <TableCell>{apy.toString()}%</TableCell>
+            <TableCell>
+                {data.isFetching ? (
+                    <LoaderCircle className="animate-spin" />
+                ) : (
+                    `${apy.toString()}%`
+                )}
+            </TableCell>
             <TableCell className="text-right">
                 <Dialog
                     open={isDialogOpen}
@@ -215,7 +221,6 @@ function SupplyDialog({
 }
 
 function ApproveStep({
-    symbol,
     account,
     tokenAddress,
     poolAddress,
@@ -311,7 +316,6 @@ function ApproveStep({
 }
 
 function SupplyStep({
-    symbol,
     account,
     tokenAddress,
     poolAddress,

@@ -279,6 +279,41 @@ abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable 
         return (b * p * 1e18) / (10 ** (tokenDecimals + chainlinkDecimals));
     }
 
+    function amountCanBoorrow(address account_) external view override returns (uint256) {
+        uint256 healthFactor = controller.healthFactorFor(account_);
+        if (healthFactor <= RayMath.RAY) {
+            return 0;
+        }
+
+        uint256 totalCollateral = controller.totalCollateralOfInUSD(account_);
+        uint256 totalDebt = controller.totalDebtOfInUSD(account_);
+        uint256 delta = totalCollateral - totalDebt;
+        if (delta <= 0) {
+            return 0;
+        }
+
+        uint256 liquidationThreshold = controller.liquidationThreshold();
+        uint256 actualAmount = (delta * liquidationThreshold) / RayMath.RAY;
+
+        (, int256 answer,,,) = _chainlinkPriceFeed.latestRoundData();
+        uint8 chainlinkDecimals = _chainlinkPriceFeed.decimals();
+        uint8 tokenDecimals = IERC20Metadata(address(token)).decimals();
+
+        uint256 p = answer.toUint256();
+
+        return (actualAmount * (10 ** (tokenDecimals + chainlinkDecimals - 18))) / p;
+    }
+
+    function balance() external view override returns (uint256) {
+        if (_afterExecutionToken0Balance > 0) {
+            return _afterExecutionToken0Balance;
+        } else if (_beforeExecutionToken0Balance > 0) {
+            return _beforeExecutionToken0Balance;
+        }
+
+        return token.balanceOf(address(this));
+    }
+
     function chainlinkPriceFeed() external view override returns (address) {
         return address(_chainlinkPriceFeed);
     }

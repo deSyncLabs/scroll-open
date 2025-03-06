@@ -33,4 +33,6 @@ interface IController {
     function totalDebtOfInUSD(address account_) external view returns (uint256);
 
     function healthFactorFor(address account_) external view returns (uint256);
+
+    function liquidationThreshold() external view returns (uint256);
 }

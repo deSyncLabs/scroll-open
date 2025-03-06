@@ -322,4 +322,52 @@ contract ControllerTest is Test {
 
         assertEq(controller.liquidationThreshold(), 0.9 * 1e27);
     }
+
+    function test_canBorrowAmountWithLargerDepositBTC() public {
+        vm.prank(alice);
+        btcPool.deposit(1 * 1e18);
+
+        uint256 depositedInUSD = 1 * 1e18 * 95000;
+        uint256 canBorrowInUSD = (depositedInUSD * 95) / 100;
+        uint256 canBorrowEth = canBorrowInUSD / 3000;
+
+        assertEq(ethPool.amountCanBoorrow(alice), canBorrowEth);
+        assertEq(btcPool.amountCanBoorrow(alice), (1 * 1e18 * 95) / 100);
+    }
+
+    function test_canBorrowAmountWithSmallerDepositBTC() public {
+        vm.prank(alice);
+        btcPool.deposit(0.5 * 1e18);
+
+        uint256 depositedInUSD = 0.5 * 1e18 * 95000;
+        uint256 canBorrowInUSD = (depositedInUSD * 95) / 100;
+        uint256 canBorrowEth = canBorrowInUSD / 3000;
+
+        assertEq(ethPool.amountCanBoorrow(alice), canBorrowEth);
+        assertEq(btcPool.amountCanBoorrow(alice), (0.5 * 1e18 * 95) / 100);
+    }
+
+    function test_canBorrowAmountWithLargerDepositETH() public {
+        vm.prank(alice);
+        ethPool.deposit(1 * 1e18);
+
+        uint256 depositedInUSD = 1 * 1e18 * 3000;
+        uint256 canBorrowInUSD = (depositedInUSD * 95) / 100;
+        uint256 canBorrowBtc = canBorrowInUSD / 95000;
+
+        assertEq(btcPool.amountCanBoorrow(alice), canBorrowBtc);
+        assertEq(ethPool.amountCanBoorrow(alice), (1 * 1e18 * 95) / 100);
+    }
+
+    function test_canBorrowAmountWithSmallerDepositETH() public {
+        vm.prank(alice);
+        ethPool.deposit(0.5 * 1e18);
+
+        uint256 depositedInUSD = 0.5 * 1e18 * 3000;
+        uint256 canBorrowInUSD = (depositedInUSD * 95) / 100;
+        uint256 canBorrowBtc = canBorrowInUSD / 95000;
+
+        assertEq(btcPool.amountCanBoorrow(alice), canBorrowBtc);
+        assertEq(ethPool.amountCanBoorrow(alice), (0.5 * 1e18 * 95) / 100);
+    }
 }

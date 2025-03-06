@@ -7,7 +7,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { BorrowCard } from "@/components/borrow-card";
 import { assets } from "@/shared/assets";
 
 export default function BorrowPage() {
@@ -28,8 +28,8 @@ export default function BorrowPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Asset</TableHead>
-                                    <TableHead>Wallet Balance</TableHead>
-                                    <TableHead>APY</TableHead>
+                                    <TableHead>Pool Balance</TableHead>
+                                    <TableHead>Interest</TableHead>
                                     <TableHead className="text-right">
                                         Action
                                     </TableHead>
@@ -38,27 +38,12 @@ export default function BorrowPage() {
 
                             <TableBody>
                                 {assets.map((asset) => (
-                                    <TableRow key={asset.symbol}>
-                                        <TableCell>
-                                            <div className="flex items-center space-x-3">
-                                                <img
-                                                    src={asset.icon}
-                                                    alt={asset.symbol}
-                                                    className="rounded-full w-6 h-6"
-                                                />
-                                                <span>{asset.symbol}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            {0}
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            {asset.apy}%
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <Button>Borrow</Button>
-                                        </TableCell>
-                                    </TableRow>
+                                    <BorrowCard
+                                        key={asset.symbol}
+                                        symbol={asset.symbol}
+                                        icon={asset.icon}
+                                        poolAddress={asset.poolAddress}
+                                    />
                                 ))}
                             </TableBody>
                         </Table>

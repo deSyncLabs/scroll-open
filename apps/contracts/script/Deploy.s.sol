@@ -220,7 +220,7 @@ contract DeployScript is Script {
 
         eth._mint_(address(ethPool), 100000 * 1e18);
         btc._mint_(address(btcPool), 10000 * 1e18);
-        usdc._mint_(address(usdcPool), 50000000 * 1e6);
+        usdc._mint_(address(usdcPool), 50000000 * 1e18);
 
         vm.stopBroadcast();
 

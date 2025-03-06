@@ -53,13 +53,13 @@ interface IPool {
 
     event Locked(uint256 indexed timestamp);
 
-    function deposit(uint256 amount) external;
+    function deposit(uint256 amount_) external;
 
-    function unlock(uint256 amount) external;
+    function unlock(uint256 amount_) external;
 
     function withdraw() external;
 
-    function _borrow(address account_, uint256 amount) external;
+    function _borrow(address account_, uint256 amount_) external;
 
     function borrow() external;
 
@@ -83,17 +83,21 @@ interface IPool {
 
     function controller() external view returns (IController);
 
-    function collateralOf(address account) external view returns (uint256);
+    function collateralOf(address account_) external view returns (uint256);
 
-    function collateralOfInUSD(address account) external view returns (uint256);
+    function collateralOfInUSD(address account_) external view returns (uint256);
 
-    function debtOf(address account) external view returns (uint256);
+    function debtOf(address account_) external view returns (uint256);
 
-    function debtOfInUSD(address account) external view returns (uint256);
+    function debtOfInUSD(address account_) external view returns (uint256);
+
+    function amountCanBoorrow(address account_) external view returns (uint256);
 
     function chainlinkPriceFeed() external view returns (address);
 
     function apy() external view returns (uint256);
 
     function locked() external view returns (bool);
+
+    function balance() external view returns (uint256);
 }

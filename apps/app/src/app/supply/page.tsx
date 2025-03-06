@@ -73,8 +73,8 @@ export default function SupplyPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Asset</TableHead>
-                                        <TableHead>Deposited</TableHead>
-                                        <TableHead>Interest</TableHead>
+                                        <TableHead>Supplied</TableHead>
+                                        <TableHead>APY</TableHead>
                                         <TableHead className="text-right">
                                             Action
                                         </TableHead>
