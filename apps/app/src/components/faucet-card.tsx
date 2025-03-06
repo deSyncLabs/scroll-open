@@ -19,17 +19,19 @@ type FaucetCardProps = {
     address: `0x${string}`;
 };
 
+type TimeLeft = {
+    hours: string;
+    minutes: string;
+    seconds: string;
+};
+
 export function FaucetCard({ symbol, icon, address }: FaucetCardProps) {
+    const [minting, setMinting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [timeLeft, setTimeLeft] = useState<TimeLeft | null>(null);
     const [currentTime, setCurrentTime] = useState(
         Math.floor(Date.now() / 1000)
     );
-    const [timeLeft, setTimeLeft] = useState<{
-        hours: string;
-        minutes: string;
-        seconds: string;
-    } | null>(null);
-    const [minting, setMinting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     const { address: account } = useAccount();
 
@@ -65,12 +67,23 @@ export function FaucetCard({ symbol, icon, address }: FaucetCardProps) {
                 setError(name);
                 setMinting(false);
             },
-            onSuccess: () => {
-                data.refetch();
-                setMinting(false);
-            },
         },
     });
+
+    const receipt = useWaitForTransactionReceipt({
+        hash: mint.data,
+    });
+
+    useEffect(() => {
+        if (receipt.status === "success") {
+            data.refetch();
+            setMinting(false);
+        } else if (receipt.status === "error") {
+            setMinting(false);
+
+            if (receipt.error) setError(receipt.error.name);
+        }
+    }, [receipt.status]);
 
     function getTimeLeft(lastTimestamp: bigint) {
         const secondsInADay = 24 * 60 * 60;
@@ -195,9 +208,7 @@ export function FaucetCard({ symbol, icon, address }: FaucetCardProps) {
             <div className="w-full">
                 <Button
                     className="w-full hover:cursor-pointer"
-                    onClick={() => {
-                        handleMint();
-                    }}
+                    onClick={handleMint}
                     disabled={timeLeft !== null || minting || data.isFetching}
                 >
                     {minting ? (

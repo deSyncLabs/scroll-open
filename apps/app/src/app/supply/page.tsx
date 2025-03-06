@@ -7,7 +7,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { SupplyCard } from "@/components/supply-card";
 import { assets } from "@/shared/assets";
 
 export default function SupplyPage() {
@@ -38,27 +38,13 @@ export default function SupplyPage() {
 
                             <TableBody>
                                 {assets.map((asset) => (
-                                    <TableRow key={asset.symbol}>
-                                        <TableCell>
-                                            <div className="flex items-center space-x-3">
-                                                <img
-                                                    src={asset.icon}
-                                                    alt={asset.symbol}
-                                                    className="rounded-full w-6 h-6"
-                                                />
-                                                <span>{asset.symbol}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            {0}
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            {asset.apy}%
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <Button>Supply</Button>
-                                        </TableCell>
-                                    </TableRow>
+                                    <SupplyCard
+                                        key={asset.address}
+                                        symbol={asset.symbol}
+                                        icon={asset.icon}
+                                        tokenAddress={asset.address}
+                                        poolAddress={asset.poolAddress}
+                                    />
                                 ))}
                             </TableBody>
                         </Table>
@@ -70,7 +56,9 @@ export default function SupplyPage() {
                         </h2>
 
                         <div>
-                            <p className="text-muted-foreground">You haven't supplied anything yet</p>
+                            <p className="text-muted-foreground">
+                                You haven't supplied anything yet
+                            </p>
                         </div>
                     </div>
                 </div>
