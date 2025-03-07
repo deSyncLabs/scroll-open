@@ -20,6 +20,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { truncateNumberToTwoDecimals } from "@/lib/utils";
 
 export function Overview() {
     const { address: account } = useAccount();
@@ -51,7 +52,7 @@ export function Overview() {
         data.data && data.data[2].result
             ? (data.data[2].result as bigint)
             : BigInt(0);
-    const healthFactor = Number(rayhfactor / RAY);
+    const healthFactor = rayhfactor / RAY;
 
     return (
         <div className="border rounded-lg grid grid-cols-3 divide-x">
@@ -83,7 +84,7 @@ export function Overview() {
                         {data.isFetching ? (
                             <LoaderCircle className="animate-spin" size={32} />
                         ) : data.data && data.data[0].result ? (
-                            `${Number(formatEther(data.data[0].result as bigint)).toFixed(2)}`
+                            `${truncateNumberToTwoDecimals(formatEther(data.data[0].result as bigint))}`
                         ) : (
                             "0.00"
                         )}
@@ -123,7 +124,7 @@ export function Overview() {
                         {data.isFetching ? (
                             <LoaderCircle className="animate-spin" size={32} />
                         ) : data.data && data.data[1].result ? (
-                            `${Number(formatEther(data.data[1].result as bigint)).toFixed(2)}`
+                            `${truncateNumberToTwoDecimals(formatEther(data.data[1].result as bigint))}`
                         ) : (
                             "0.00"
                         )}
@@ -165,12 +166,17 @@ export function Overview() {
                         )}
                     >
                         {data.isFetching ? (
-                            <LoaderCircle className="animate-spin stroke-foreground" size={32} />
+                            <LoaderCircle
+                                className="animate-spin stroke-foreground"
+                                size={32}
+                            />
                         ) : data.data && data.data[2].result ? (
                             healthFactor > 100 ? (
                                 <Infinity size={32} />
                             ) : (
-                                healthFactor.toFixed(2)
+                                truncateNumberToTwoDecimals(
+                                    healthFactor.toString()
+                                )
                             )
                         ) : (
                             "0.00"

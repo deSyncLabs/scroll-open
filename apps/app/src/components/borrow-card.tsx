@@ -96,7 +96,10 @@ export function BorrowCard({
                     <LoaderCircle className="animate-spin" />
                 ) : data.data && data.data[0].result ? (
                     truncateNumberToTwoDecimals(
-                        formatEther(data.data![0].result as bigint)
+                        (
+                            Number(formatEther(data.data[0].result as bigint)) *
+                            0.9
+                        ).toString()
                     )
                 ) : (
                     "0.00"
