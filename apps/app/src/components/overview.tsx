@@ -2,10 +2,23 @@
 
 import { useAccount, useReadContracts } from "wagmi";
 import { formatEther } from "viem";
-import { DollarSign, HandCoins, Heart, LoaderCircle } from "lucide-react";
+import {
+    DollarSign,
+    HandCoins,
+    Heart,
+    LoaderCircle,
+    Info,
+    HelpCircle,
+} from "lucide-react";
 import { controllerABI } from "@/shared/abis";
 import { controllerAddress } from "@/shared/metadata";
 import { RAY, cn } from "@/lib/utils";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function Overview() {
     const { address: account } = useAccount();
@@ -43,7 +56,27 @@ export function Overview() {
         <div className="border rounded-lg grid grid-cols-3 divide-x">
             <div className="p-4 flex justify-between items-center">
                 <div>
-                    <p className="text-muted-foreground text-lg">Collateral</p>
+                    <p className="text-muted-foreground text-lg flex items-center space-x-2">
+                        <span>Collateral</span>
+
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <HelpCircle
+                                        size={12}
+                                        className="fill-muted"
+                                    />
+                                </TooltipTrigger>
+
+                                <TooltipContent>
+                                    <p>
+                                        Rebalancing can take up to 24 hours, so
+                                        displayed amounts may differ.
+                                    </p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </p>
                     <p className="text-2xl flex">
                         <span className="text-muted-foreground">$</span>
                         {data.isFetching ? (
@@ -63,8 +96,26 @@ export function Overview() {
 
             <div className="p-4 flex justify-between items-center">
                 <div>
-                    <p className="text-muted-foreground text-lg">
-                        Borrowed Amount
+                    <p className="text-muted-foreground text-lg flex items-center space-x-2">
+                        <span>Borrowed Amount</span>
+
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <HelpCircle
+                                        size={12}
+                                        className="fill-muted"
+                                    />
+                                </TooltipTrigger>
+
+                                <TooltipContent>
+                                    <p>
+                                        Rebalancing can take up to 24 hours, so
+                                        displayed amounts may differ.
+                                    </p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </p>
                     <p className="text-2xl flex">
                         <span className="text-muted-foreground">$</span>
@@ -83,11 +134,27 @@ export function Overview() {
                 </div>
             </div>
 
-            {/* TODO: Add "i" button */}
             <div className="p-4 flex justify-between items-center">
                 <div>
-                    <p className="text-muted-foreground text-lg">
-                        Health Factor
+                    <p className="text-muted-foreground text-lg flex items-center space-x-2">
+                        <span>Health Factor</span>
+
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Info size={12} className="fill-muted" />
+                                </TooltipTrigger>
+
+                                <TooltipContent>
+                                    <p>
+                                        The Health Factor measures the safety of
+                                        your borrowing position. If it drops
+                                        below 1, your collateral may be at risk
+                                        of liquidation.
+                                    </p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </p>
                     <p
                         className={cn(

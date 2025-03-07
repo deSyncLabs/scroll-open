@@ -10,6 +10,7 @@ import {
 import { formatEther, parseEther } from "viem";
 import { LoaderCircle, CircleCheck } from "lucide-react";
 import { mintableERC20ABI, poolABI } from "@/shared/abis";
+import { truncateNumberToTwoDecimals } from "@/lib/utils";
 import { RAY } from "@/lib/utils";
 import { TableRow, TableCell } from "./ui/table";
 import { Button } from "./ui/button";
@@ -104,16 +105,18 @@ export function SupplyCard({
                 {data.isFetching ? (
                     <LoaderCircle className="animate-spin" />
                 ) : data.data && data.data[0].result ? (
-                    formatEther(data.data![0].result as bigint)
+                    truncateNumberToTwoDecimals(
+                        formatEther(data.data![0].result as bigint)
+                    )
                 ) : (
-                    "0"
+                    "0.00"
                 )}
             </TableCell>
             <TableCell>
                 {data.isFetching ? (
                     <LoaderCircle className="animate-spin" />
                 ) : (
-                    `${apy.toString()}%`
+                    `${truncateNumberToTwoDecimals(apy.toString())}%`
                 )}
             </TableCell>
             <TableCell className="text-right">
@@ -176,7 +179,7 @@ function SupplyDialog({
     const currentStep = steps.find((item) => item.step === step);
 
     return (
-        <DialogContent>
+        <DialogContent className="font-[family-name:var(--font-geist-mono)] ">
             {(currentStep?.dialogTitle || currentStep?.dialogDescription) && (
                 <>
                     <DialogHeader>
@@ -419,9 +422,11 @@ function SupplyStep({
                     {data.isFetching ? (
                         <LoaderCircle className="animate-spin" />
                     ) : data.data && data.data[0].result ? (
-                        formatEther(data.data[0].result as bigint)
+                        truncateNumberToTwoDecimals(
+                            formatEther(data.data[0].result as bigint)
+                        )
                     ) : (
-                        "0"
+                        "0.00"
                     )}
                 </span>
             </div>

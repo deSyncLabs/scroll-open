@@ -28,7 +28,7 @@ export default function BorrowPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Asset</TableHead>
-                                    <TableHead>Pool Balance</TableHead>
+                                    <TableHead>You Can Borrow</TableHead>
                                     <TableHead>Interest</TableHead>
                                     <TableHead className="text-right">
                                         Action

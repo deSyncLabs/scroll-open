@@ -72,10 +72,13 @@ export function BorrowCard({
             {
                 address: poolAddress,
                 abi: poolABI,
-                functionName: "balance",
+                functionName: "amountCanBoorrow",
+                args: [account],
             },
         ],
     });
+
+    console.log(data.data && data.data[0].result);
 
     return (
         <TableRow>
@@ -93,12 +96,14 @@ export function BorrowCard({
                 {data.isFetching ? (
                     <LoaderCircle className="animate-spin" />
                 ) : data.data && data.data[0].result ? (
-                    formatEther(data.data![0].result as bigint)
+                    truncateNumberToTwoDecimals(
+                        formatEther(data.data![0].result as bigint)
+                    )
                 ) : (
-                    "0"
+                    "0.00"
                 )}
             </TableCell>
-            <TableCell>0%</TableCell>
+            <TableCell>0.00%</TableCell>
             <TableCell className="text-right">
                 <Dialog
                     open={isDialogOpen}
@@ -152,7 +157,7 @@ function BorrowDialog({
     const currentStep = steps.find((item) => item.step === step);
 
     return (
-        <DialogContent>
+        <DialogContent className="font-[family-name:var(--font-geist-mono)]">
             {(currentStep?.dialogTitle || currentStep?.dialogDescription) && (
                 <>
                     <DialogHeader>
@@ -275,7 +280,10 @@ function BorrowStep({
 
     function handleMax() {
         if (data.data && data.data[0].result) {
-            setAmount(formatEther(data.data[0].result as bigint));
+            const borrowableMax = formatEther(data.data[0].result as bigint);
+            const max = Number(borrowableMax) * 0.9;
+
+            setAmount(max.toString());
         }
     }
 
@@ -299,7 +307,11 @@ function BorrowStep({
                         <LoaderCircle className="animate-spin" />
                     ) : data.data && data.data[0].result ? (
                         truncateNumberToTwoDecimals(
-                            formatEther(data.data[0].result as bigint)
+                            (
+                                Number(
+                                    formatEther(data.data[0].result as bigint)
+                                ) * 0.9
+                            ).toString()
                         )
                     ) : (
                         "0"
@@ -345,7 +357,7 @@ function DoneStep(_: StepProps) {
         <div className="flex flex-col items-center gap-2">
             <Clock className="stroke-green-500" size={50} />
             <p className="text-muted-foreground text-lg text-center">
-                Please wait upto 24 hours for your funds to be unlocked
+                Please wait upto 24 hours for your funds to be available.
             </p>
         </div>
     );

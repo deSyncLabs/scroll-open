@@ -27,13 +27,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en" suppressHydrationWarning>
-            <body
-                className={cn(
-                    geistSans.variable,
-                    geistMono.variable,
-                    "antialiased"
-                )}
-            >
+            <body className={cn(geistMono.variable, "antialiased")}>
                 <Providers>
                     <div className="font-[family-name:var(--font-geist-mono)] flex flex-col items-center">
                         <Navbar />
