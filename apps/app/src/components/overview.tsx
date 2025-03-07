@@ -9,6 +9,7 @@ import {
     LoaderCircle,
     Info,
     HelpCircle,
+    Infinity,
 } from "lucide-react";
 import { controllerABI } from "@/shared/abis";
 import { controllerAddress } from "@/shared/metadata";
@@ -70,8 +71,8 @@ export function Overview() {
 
                                 <TooltipContent>
                                     <p>
-                                        Rebalancing can take up to 24 hours, so
-                                        displayed amounts may differ.
+                                        Displayed amounts may differ as
+                                        rebalancing can take up to 24 hours.
                                     </p>
                                 </TooltipContent>
                             </Tooltip>
@@ -110,8 +111,8 @@ export function Overview() {
 
                                 <TooltipContent>
                                     <p>
-                                        Rebalancing can take up to 24 hours, so
-                                        displayed amounts may differ.
+                                        Displayed amounts may differ as
+                                        rebalancing can take up to 24 hours.
                                     </p>
                                 </TooltipContent>
                             </Tooltip>
@@ -164,9 +165,13 @@ export function Overview() {
                         )}
                     >
                         {data.isFetching ? (
-                            <LoaderCircle className="animate-spin" size={32} />
+                            <LoaderCircle className="animate-spin stroke-foreground" size={32} />
                         ) : data.data && data.data[2].result ? (
-                            healthFactor.toFixed(2)
+                            healthFactor > 100 ? (
+                                <Infinity size={32} />
+                            ) : (
+                                healthFactor.toFixed(2)
+                            )
                         ) : (
                             "0.00"
                         )}

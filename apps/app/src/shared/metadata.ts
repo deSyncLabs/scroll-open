@@ -7,6 +7,7 @@ export const assets = [
         address: getAddress(process.env.NEXT_PUBLIC_BTC_CONTRACT_ADDRESS!),
         poolAddress: getAddress(process.env.NEXT_PUBLIC_BTC_POOL_ADDRESS!),
         deTokenAddress: getAddress(process.env.NEXT_PUBLIC_BTC_DETOKEN_ADDRESS!),
+        debtTokenAddress: getAddress(process.env.NEXT_PUBLIC_BTC_DEBTTOKEN_ADDRESS!),
         apy: 10.0,
     },
     {
@@ -15,6 +16,7 @@ export const assets = [
         address: getAddress(process.env.NEXT_PUBLIC_ETH_CONTRACT_ADDRESS!),
         poolAddress: getAddress(process.env.NEXT_PUBLIC_ETH_POOL_ADDRESS!),
         deTokenAddress: getAddress(process.env.NEXT_PUBLIC_ETH_DETOKEN_ADDRESS!),
+        debtTokenAddress: getAddress(process.env.NEXT_PUBLIC_ETH_DEBTTOKEN_ADDRESS!),
         apy: 12.9,
     },
     {
@@ -23,6 +25,7 @@ export const assets = [
         address: getAddress(process.env.NEXT_PUBLIC_USDC_CONTRACT_ADDRESS!),
         poolAddress: getAddress(process.env.NEXT_PUBLIC_USDC_POOL_ADDRESS!),
         deTokenAddress: getAddress(process.env.NEXT_PUBLIC_USDC_DETOKEN_ADDRESS!),
+        debtTokenAddress: getAddress(process.env.NEXT_PUBLIC_USDC_DEBTTOKEN_ADDRESS!),
         apy: 7.0,
     },
 ];

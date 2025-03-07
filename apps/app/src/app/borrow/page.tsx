@@ -2,15 +2,25 @@ import { Overview } from "@/components/overview";
 import {
     Table,
     TableBody,
-    TableCell,
     TableHead,
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
 import { BorrowCard } from "@/components/borrow-card";
+import { BorrowedCard } from "@/components/borrowed-card";
 import { assets } from "@/shared/metadata";
 
 export default function BorrowPage() {
+    const borrowedCards = assets.map((asset) => (
+        <BorrowedCard
+            key={asset.address}
+            symbol={asset.symbol}
+            icon={asset.icon}
+            debtTokenAddress={asset.debtTokenAddress}
+            poolAddress={asset.poolAddress}
+        />
+    ));
+
     return (
         <div className="space-y-8">
             <Overview />
@@ -55,11 +65,26 @@ export default function BorrowPage() {
                             Assets Borrowed
                         </h2>
 
-                        <div>
+                        {borrowedCards.length > 0 ? (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Asset</TableHead>
+                                        <TableHead>Borrowed</TableHead>
+                                        <TableHead>Interest</TableHead>
+                                        <TableHead className="text-right">
+                                            Action
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+
+                                <TableBody>{borrowedCards}</TableBody>
+                            </Table>
+                        ) : (
                             <p className="text-muted-foreground">
                                 You haven't borrowed anything yet
                             </p>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>

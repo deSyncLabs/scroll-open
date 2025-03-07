@@ -8,6 +8,7 @@ import {
     useWaitForTransactionReceipt,
 } from "wagmi";
 import { formatEther, parseEther } from "viem";
+import { useQueryClient } from "@tanstack/react-query";
 import { LoaderCircle, Clock } from "lucide-react";
 import { controllerAddress } from "@/shared/metadata";
 import { poolABI, controllerABI } from "@/shared/abis";
@@ -77,8 +78,6 @@ export function BorrowCard({
             },
         ],
     });
-
-    console.log(data.data && data.data[0].result);
 
     return (
         <TableRow>
@@ -212,6 +211,8 @@ function BorrowStep({
     const [borrowing, setBorrowing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const queryClient = useQueryClient();
+
     const data = useReadContracts({
         contracts: [
             {
@@ -254,6 +255,7 @@ function BorrowStep({
     useEffect(() => {
         if (receipt.status === "success") {
             setBorrowing(false);
+            queryClient.invalidateQueries();
             setStep(2);
         } else if (receipt.status === "error") {
             setBorrowing(false);

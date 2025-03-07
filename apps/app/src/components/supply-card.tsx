@@ -8,6 +8,7 @@ import {
     useWaitForTransactionReceipt,
 } from "wagmi";
 import { formatEther, parseEther } from "viem";
+import { useQueryClient } from "@tanstack/react-query";
 import { LoaderCircle, CircleCheck } from "lucide-react";
 import { mintableERC20ABI, poolABI } from "@/shared/abis";
 import { truncateNumberToTwoDecimals } from "@/lib/utils";
@@ -329,6 +330,8 @@ function SupplyStep({
     const [supplying, setSupplying] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const queryClient = useQueryClient();
+
     const data = useReadContracts({
         contracts: [
             {
@@ -371,11 +374,10 @@ function SupplyStep({
     useEffect(() => {
         if (receipt.status === "success") {
             setSupplying(false);
+            queryClient.invalidateQueries();
             setStep(3);
         } else if (receipt.status === "error") {
             setSupplying(false);
-
-            console.log(receipt.error);
 
             if (receipt.error) setError(receipt.error.name);
         }

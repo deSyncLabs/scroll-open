@@ -9,8 +9,8 @@ import {
 } from "wagmi";
 import { formatEther, parseEther } from "viem";
 import { useQueryClient } from "@tanstack/react-query";
-import { LoaderCircle, Clock } from "lucide-react";
-import { deTokenABI, poolABI } from "@/shared/abis";
+import { LoaderCircle, CircleCheck, HelpCircle } from "lucide-react";
+import { debtTokenABI, poolABI } from "@/shared/abis";
 import { truncateNumberToTwoDecimals } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -31,37 +31,43 @@ import {
     StepperSeparator,
     StepperTitle,
 } from "./ui/stepper";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "./ui/tooltip";
 
-type SuppliedCardProps = {
+type BorrowedCardProps = {
     symbol: string;
     icon: string;
-    deTokenAddress: `0x${string}`;
+    debtTokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
 };
 
-type WithdrawDialogProps = {
+type RepayDialogProps = {
     step: number;
     setStep: (step: number) => void;
     symbol: string;
     account: string;
-    deTokenAddress: `0x${string}`;
+    debtTokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
 };
 
 type StepProps = {
     symbol: string;
     account: string;
-    deTokenAddress: `0x${string}`;
+    debtTokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
     setStep: (step: number) => void;
 };
 
-export function SuppliedCard({
+export function BorrowedCard({
     symbol,
     icon,
-    deTokenAddress,
+    debtTokenAddress,
     poolAddress,
-}: SuppliedCardProps) {
+}: BorrowedCardProps) {
     const [step, setStep] = useState(1);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -70,25 +76,30 @@ export function SuppliedCard({
     const data = useReadContracts({
         contracts: [
             {
-                address: deTokenAddress,
-                abi: deTokenABI,
+                address: debtTokenAddress,
+                abi: debtTokenABI,
                 functionName: "balanceOf",
                 args: [account],
             },
             {
                 address: poolAddress,
                 abi: poolABI,
-                functionName: "apy",
+                functionName: "borrowIntents",
+                args: [account],
             },
         ],
     });
 
-    const RAY = BigInt(10 ** 27);
-    const raypy =
-        data.data && data.data[1].result
-            ? (data.data[1].result as bigint)
+    const totalBorrowed =
+        data.data && (data.data[0].result || data.data[1].result)
+            ? (data.data[0].result as bigint) + (data.data[1].result as bigint)
             : BigInt(0);
-    const apy = Number((raypy * BigInt(100)) / RAY);
+
+    console.log("3: ", totalBorrowed);
+
+    if (totalBorrowed === BigInt(0)) {
+        return null;
+    }
 
     if (data.isFetching) {
         return (
@@ -100,10 +111,6 @@ export function SuppliedCard({
                 </TableCell>
             </TableRow>
         );
-    }
-
-    if (data.data && !data.data[0].result) {
-        return null;
     }
 
     return (
@@ -121,17 +128,14 @@ export function SuppliedCard({
             <TableCell>
                 {data.isFetching ? (
                     <LoaderCircle className="animate-spin" />
-                ) : data.data && data.data[0].result ? (
-                    truncateNumberToTwoDecimals(
-                        formatEther(data.data![0].result as bigint)
-                    )
+                ) : data.data &&
+                  (data.data[0].result || data.data[1].result) ? (
+                    truncateNumberToTwoDecimals(formatEther(totalBorrowed))
                 ) : (
                     "0.00"
                 )}
             </TableCell>
-            <TableCell>
-                {truncateNumberToTwoDecimals(apy.toString())}%
-            </TableCell>
+            <TableCell>0.00%</TableCell>
             <TableCell className="text-right">
                 <Dialog
                     open={isDialogOpen}
@@ -142,16 +146,14 @@ export function SuppliedCard({
                     }}
                 >
                     <DialogTrigger asChild>
-                        <Button className="hover:cursor-pointer">
-                            Withdraw
-                        </Button>
+                        <Button className="hover:cursor-pointer">Repay</Button>
                     </DialogTrigger>
-                    <WithdrawDialog
+                    <RepayDialog
                         step={step}
                         setStep={setStep}
                         symbol={symbol}
                         account={account!}
-                        deTokenAddress={deTokenAddress}
+                        debtTokenAddress={debtTokenAddress}
                         poolAddress={poolAddress}
                     />
                 </Dialog>
@@ -160,26 +162,26 @@ export function SuppliedCard({
     );
 }
 
-function WithdrawDialog({
+function RepayDialog({
     step,
     setStep,
     symbol,
     account,
-    deTokenAddress,
+    debtTokenAddress,
     poolAddress,
-}: WithdrawDialogProps) {
+}: RepayDialogProps) {
     const steps = [
         {
             step: 1,
-            dialogTitle: `Withdraw ${symbol}`,
-            dialogDescription: `Withdraw your ${symbol} from the pool`,
-            component: WithdrawStep,
-            stepTitle: "Withdraw",
+            dialogTitle: `Repay ${symbol}`,
+            dialogDescription: `Repay your debt to unlock your collateral.`,
+            component: RepayStep,
+            stepTitle: "Repay",
         },
         {
             step: 2,
             dialogTitle: "Done",
-            dialogDescription: "Withdraw intent has been submitted",
+            dialogDescription: "Your debt has been repaid.",
             component: DoneStep,
             stepTitle: "Done",
         },
@@ -205,7 +207,7 @@ function WithdrawDialog({
                     <currentStep.component
                         symbol={symbol}
                         account={account}
-                        deTokenAddress={deTokenAddress}
+                        debtTokenAddress={debtTokenAddress}
                         poolAddress={poolAddress}
                         setStep={setStep}
                     />
@@ -232,15 +234,16 @@ function WithdrawDialog({
     );
 }
 
-function WithdrawStep({
+function RepayStep({
+    symbol,
     account,
-    deTokenAddress,
+    debtTokenAddress,
     poolAddress,
     setStep,
 }: StepProps) {
     const [amount, setAmount] = useState<string>("");
     const [validAmount, setValidAmount] = useState(false);
-    const [withdrawing, setWithdrawing] = useState(false);
+    const [repaying, setRepaying] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const queryClient = useQueryClient();
@@ -248,8 +251,8 @@ function WithdrawStep({
     const data = useReadContracts({
         contracts: [
             {
-                address: deTokenAddress,
-                abi: deTokenABI,
+                address: debtTokenAddress,
+                abi: debtTokenABI,
                 functionName: "balanceOf",
                 args: [account],
             },
@@ -269,30 +272,28 @@ function WithdrawStep({
         }
     }, [amount, data.data]);
 
-    const withdraw = useWriteContract({
+    const repay = useWriteContract({
         mutation: {
             onMutate: () => {
                 setError(null);
-                setWithdrawing(true);
+                setRepaying(true);
             },
             onError: ({ name }) => {
                 setError(name);
-                setWithdrawing(false);
+                setRepaying(false);
             },
         },
     });
 
-    const receipt = useWaitForTransactionReceipt({ hash: withdraw.data });
+    const receipt = useWaitForTransactionReceipt({ hash: repay.data });
 
     useEffect(() => {
         if (receipt.status === "success") {
-            setWithdrawing(false);
+            setRepaying(false);
             queryClient.invalidateQueries();
             setStep(2);
         } else if (receipt.status === "error") {
-            setWithdrawing(false);
-
-            console.log(receipt.error);
+            setRepaying(false);
 
             if (receipt.error) setError(receipt.error.name);
         }
@@ -318,12 +319,12 @@ function WithdrawStep({
         }
     }
 
-    async function handleWithdraw() {
+    async function handleRepay() {
         try {
-            await withdraw.writeContractAsync({
+            await repay.writeContractAsync({
                 address: poolAddress,
                 abi: poolABI,
-                functionName: "unlock",
+                functionName: "repay",
                 args: [parseEther(amount)],
             });
         } catch (error) {}
@@ -331,8 +332,10 @@ function WithdrawStep({
 
     return (
         <div className="flex flex-col items-center gap-4">
-            <div className="w-full flex space-x-1">
-                <span className="text-muted-foreground">Your Balance: </span>
+            <div className="w-full flex space-x-1 items-center">
+                <span className="text-muted-foreground">
+                    Amount You Can Repay:{" "}
+                </span>
                 <span>
                     {data.isFetching ? (
                         <LoaderCircle className="animate-spin" />
@@ -343,6 +346,23 @@ function WithdrawStep({
                     ) : (
                         "0.00"
                     )}
+                </span>
+                <span className="text-muted-foreground">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger>
+                                <HelpCircle size={12} className="fill-muted" />
+                            </TooltipTrigger>
+
+                            <TooltipContent>
+                                <p>
+                                    Displayed amounts may vary because you can
+                                    only repay once the loan is settled, which
+                                    may take up to 24 hours.
+                                </p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </span>
             </div>
 
@@ -364,14 +384,10 @@ function WithdrawStep({
 
             <Button
                 className="w-full hover:cursor-pointer"
-                disabled={data.isFetching || !validAmount || withdrawing}
-                onClick={handleWithdraw}
+                disabled={data.isFetching || !validAmount || repaying}
+                onClick={handleRepay}
             >
-                {withdrawing ? (
-                    <LoaderCircle className="animate-spin" />
-                ) : (
-                    "Withdraw"
-                )}
+                {repaying ? <LoaderCircle className="animate-spin" /> : "Repay"}
             </Button>
 
             {error && <div className="text-red-500">{error}</div>}
@@ -382,9 +398,9 @@ function WithdrawStep({
 function DoneStep(_: StepProps) {
     return (
         <div className="flex flex-col items-center gap-2">
-            <Clock className="stroke-green-500" size={50} />
+            <CircleCheck className="stroke-green-500" size={50} />
             <p className="text-muted-foreground text-lg text-center">
-                Please wait upto 24 hours for your funds to be unlocked
+                Your transactoin was successful.
             </p>
         </div>
     );
