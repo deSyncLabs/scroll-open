@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { useAccount, useReadContracts } from "wagmi";
-import { formatEther } from "viem";
-import { LoaderCircle } from "lucide-react";
-import { poolABI } from "@/shared/abis";
+import { useState, useEffect } from "react";
+import {
+    useAccount,
+    useReadContracts,
+    useWriteContract,
+    useWaitForTransactionReceipt,
+} from "wagmi";
+import { formatEther, parseEther } from "viem";
+import { LoaderCircle, Clock } from "lucide-react";
+import { controllerAddress } from "@/shared/metadata";
+import { poolABI, controllerABI } from "@/shared/abis";
+import { truncateNumberToTwoDecimals } from "@/lib/utils";
 import { TableRow, TableCell } from "./ui/table";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -28,6 +35,7 @@ import {
 type BorrowCardProps = {
     symbol: string;
     icon: string;
+    tokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
 };
 
@@ -36,17 +44,24 @@ type BorrowDialogProps = {
     setStep: (step: number) => void;
     symbol: string;
     account: string;
+    tokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
 };
 
 type StepProps = {
     symbol: string;
     account: string;
+    tokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
     setStep: (step: number) => void;
 };
 
-export function BorrowCard({ symbol, icon, poolAddress }: BorrowCardProps) {
+export function BorrowCard({
+    symbol,
+    icon,
+    tokenAddress,
+    poolAddress,
+}: BorrowCardProps) {
     const [step, setStep] = useState(1);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -100,6 +115,7 @@ export function BorrowCard({ symbol, icon, poolAddress }: BorrowCardProps) {
                         setStep={setStep}
                         symbol={symbol}
                         account={account!}
+                        tokenAddress={tokenAddress}
                         poolAddress={poolAddress}
                     />
                 </Dialog>
@@ -113,6 +129,7 @@ function BorrowDialog({
     setStep,
     symbol,
     account,
+    tokenAddress,
     poolAddress,
 }: BorrowDialogProps) {
     const steps = [
@@ -152,6 +169,7 @@ function BorrowDialog({
                     <currentStep.component
                         symbol={symbol}
                         account={account}
+                        tokenAddress={tokenAddress}
                         poolAddress={poolAddress}
                         setStep={setStep}
                     />
@@ -178,13 +196,68 @@ function BorrowDialog({
     );
 }
 
-function BorrowStep({ setStep }: StepProps) {
+function BorrowStep({
+    setStep,
+    account,
+    poolAddress,
+    tokenAddress,
+}: StepProps) {
     const [amount, setAmount] = useState<string>("");
     const [validAmount, setValidAmount] = useState(false);
     const [borrowing, setBorrowing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const data = useReadContracts({});
+    const data = useReadContracts({
+        contracts: [
+            {
+                address: poolAddress,
+                abi: poolABI,
+                functionName: "amountCanBoorrow",
+                args: [account],
+            },
+        ],
+    });
+
+    useEffect(() => {
+        if (data.data && data.data[0].result) {
+            const balance = formatEther(data.data[0].result as bigint);
+            if (Number(amount) > Number(balance)) {
+                setValidAmount(false);
+            } else if (Number(amount) <= 0) {
+                setValidAmount(false);
+            } else {
+                setValidAmount(true);
+            }
+        }
+    }, [amount, data.data]);
+
+    const borrow = useWriteContract({
+        mutation: {
+            onMutate: () => {
+                setError(null);
+                setBorrowing(true);
+            },
+            onError: ({ name }) => {
+                setError(name);
+                setBorrowing(false);
+            },
+        },
+    });
+
+    const receipt = useWaitForTransactionReceipt({ hash: borrow.data });
+
+    useEffect(() => {
+        if (receipt.status === "success") {
+            setBorrowing(false);
+            setStep(2);
+        } else if (receipt.status === "error") {
+            setBorrowing(false);
+
+            console.log(receipt.error);
+
+            if (receipt.error) setError(receipt.error.name);
+        }
+    }, [receipt.status]);
 
     function handleValueChange(e: React.ChangeEvent<HTMLInputElement>) {
         const value = e.target.value;
@@ -200,30 +273,54 @@ function BorrowStep({ setStep }: StepProps) {
         setAmount(value);
     }
 
-    // function handleMax() {
-    //     if (data.data && data.data[0].result) {
-    //         setAmount(formatEther(data.data[0].result as bigint));
-    //     }
-    // }
+    function handleMax() {
+        if (data.data && data.data[0].result) {
+            setAmount(formatEther(data.data[0].result as bigint));
+        }
+    }
 
-    async function handleBorrow() {}
+    async function handleBorrow() {
+        try {
+            await borrow.writeContractAsync({
+                address: controllerAddress,
+                abi: controllerABI,
+                functionName: "borrow",
+                args: [tokenAddress, parseEther(amount)],
+            });
+        } catch (error) {}
+    }
 
     return (
         <div className="flex flex-col items-center gap-4">
+            <div className="w-full flex space-x-1">
+                <span className="text-muted-foreground">You Can Borrow: </span>
+                <span>
+                    {data.isFetching ? (
+                        <LoaderCircle className="animate-spin" />
+                    ) : data.data && data.data[0].result ? (
+                        truncateNumberToTwoDecimals(
+                            formatEther(data.data[0].result as bigint)
+                        )
+                    ) : (
+                        "0"
+                    )}
+                </span>
+            </div>
+
             <div className="flex space-x-2 w-full">
                 <Input
                     value={amount}
                     type="number"
                     onChange={handleValueChange}
                 />
-                {/* <Button
+                <Button
                     variant={"secondary"}
                     className="hover:cursor-pointer"
                     disabled={data.isFetching}
                     onClick={handleMax}
                 >
                     Max
-                </Button> */}
+                </Button>
             </div>
 
             <Button
@@ -243,6 +340,13 @@ function BorrowStep({ setStep }: StepProps) {
     );
 }
 
-function DoneStep({ setStep }: StepProps) {
-    return <div></div>;
+function DoneStep(_: StepProps) {
+    return (
+        <div className="flex flex-col items-center gap-2">
+            <Clock className="stroke-green-500" size={50} />
+            <p className="text-muted-foreground text-lg text-center">
+                Please wait upto 24 hours for your funds to be unlocked
+            </p>
+        </div>
+    );
 }

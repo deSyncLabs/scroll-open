@@ -8,9 +8,7 @@ const config = createConfig(
     getDefaultConfig({
         chains: [scrollSepolia],
         transports: {
-            [scrollSepolia.id]: http(
-                process.env.NEXT_PUBLIC_SCROLL_SEPOLIA_RPC_URL!
-            ),
+            [scrollSepolia.id]: http("/rpc/scroll-sepolia"),
         },
         walletConnectProjectId:
             process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,

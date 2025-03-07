@@ -10,6 +10,7 @@ import {
 import { formatEther, parseEther } from "viem";
 import { LoaderCircle, CircleCheck } from "lucide-react";
 import { mintableERC20ABI, poolABI } from "@/shared/abis";
+import { RAY } from "@/lib/utils";
 import { TableRow, TableCell } from "./ui/table";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -81,7 +82,6 @@ export function SupplyCard({
         ],
     });
 
-    const RAY = BigInt(10 ** 27);
     const raypy =
         data.data && data.data[1].result
             ? (data.data[1].result as bigint)
@@ -413,15 +413,17 @@ function SupplyStep({
 
     return (
         <div className="flex flex-col items-center gap-4">
-            <div className="w-full">
+            <div className="w-full flex space-x-1">
                 <span className="text-muted-foreground">Your Balance: </span>
-                {data.isFetching ? (
-                    <LoaderCircle className="animate-spin" />
-                ) : data.data && data.data[0].result ? (
-                    formatEther(data.data[0].result as bigint)
-                ) : (
-                    "0"
-                )}
+                <span>
+                    {data.isFetching ? (
+                        <LoaderCircle className="animate-spin" />
+                    ) : data.data && data.data[0].result ? (
+                        formatEther(data.data[0].result as bigint)
+                    ) : (
+                        "0"
+                    )}
+                </span>
             </div>
 
             <div className="flex space-x-2 w-full">

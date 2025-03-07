@@ -321,15 +321,17 @@ function WithdrawStep({
 
     return (
         <div className="flex flex-col items-center gap-4">
-            <div className="w-full">
+            <div className="w-full flex space-x-1">
                 <span className="text-muted-foreground">Your Balance: </span>
-                {data.isFetching ? (
-                    <LoaderCircle className="animate-spin" />
-                ) : data.data && data.data[0].result ? (
-                    formatEther(data.data[0].result as bigint)
-                ) : (
-                    "0"
-                )}
+                <span>
+                    {data.isFetching ? (
+                        <LoaderCircle className="animate-spin" />
+                    ) : data.data && data.data[0].result ? (
+                        formatEther(data.data[0].result as bigint)
+                    ) : (
+                        "0"
+                    )}
+                </span>
             </div>
 
             <div className="flex space-x-2 w-full">

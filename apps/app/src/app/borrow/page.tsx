@@ -8,7 +8,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { BorrowCard } from "@/components/borrow-card";
-import { assets } from "@/shared/assets";
+import { assets } from "@/shared/metadata";
 
 export default function BorrowPage() {
     return (
@@ -42,6 +42,7 @@ export default function BorrowPage() {
                                         key={asset.symbol}
                                         symbol={asset.symbol}
                                         icon={asset.icon}
+                                        tokenAddress={asset.address}
                                         poolAddress={asset.poolAddress}
                                     />
                                 ))}

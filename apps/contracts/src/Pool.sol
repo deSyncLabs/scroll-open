@@ -306,12 +306,12 @@ abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable 
 
     function balance() external view override returns (uint256) {
         if (_afterExecutionToken0Balance > 0) {
-            return _afterExecutionToken0Balance;
+            return _afterExecutionToken0Balance - _totalUnlockedIntents - _totalUnlocked;
         } else if (_beforeExecutionToken0Balance > 0) {
-            return _beforeExecutionToken0Balance;
+            return _beforeExecutionToken0Balance - _totalUnlockedIntents - _totalUnlocked;
         }
 
-        return token.balanceOf(address(this));
+        return token.balanceOf(address(this)) - _totalUnlockedIntents - _totalUnlocked;
     }
 
     function chainlinkPriceFeed() external view override returns (address) {

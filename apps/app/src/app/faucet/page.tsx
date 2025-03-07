@@ -1,5 +1,5 @@
 import { FaucetCard } from "@/components/faucet-card";
-import { assets } from "@/shared/assets";
+import { assets } from "@/shared/metadata";
 
 export default function FaucetPage() {
     return (

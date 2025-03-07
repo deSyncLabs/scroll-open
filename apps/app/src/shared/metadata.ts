@@ -26,3 +26,5 @@ export const assets = [
         apy: 7.0,
     },
 ];
+
+export const controllerAddress = getAddress(process.env.NEXT_PUBLIC_CONTROLLER_ADDRESS!);

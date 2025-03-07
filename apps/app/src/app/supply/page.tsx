@@ -8,7 +8,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { SupplyCard } from "@/components/supply-card";
-import { assets } from "@/shared/assets";
+import { assets } from "@/shared/metadata";
 import { SuppliedCard } from "@/components/supplied-card";
 
 // TODO: Refetch everything when the user deposits or withdraws
