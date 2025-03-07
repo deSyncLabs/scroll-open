@@ -10,7 +10,8 @@ import {
 import { formatEther, parseEther } from "viem";
 import { useQueryClient } from "@tanstack/react-query";
 import { LoaderCircle, Clock } from "lucide-react";
-import { deTokenABI, poolABI } from "@/shared/abis";
+import { deTokenABI, poolABI, controllerABI } from "@/shared/abis";
+import { controllerAddress } from "@/shared/metadata";
 import { truncateNumberToTwoDecimals } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -253,6 +254,12 @@ function WithdrawStep({
                 functionName: "balanceOf",
                 args: [account],
             },
+            {
+                address: controllerAddress,
+                abi: controllerABI,
+                functionName: "totalDebtOfInUSD",
+                args: [account],
+            },
         ],
     });
 
@@ -331,6 +338,13 @@ function WithdrawStep({
 
     return (
         <div className="flex flex-col items-center gap-4">
+            {data.data && (data.data[1].result as bigint) ? (
+                <div className="text-yellow-500">
+                    You cannot withdraw funds while you have an active loan.
+                    Please repay your loan first.
+                </div>
+            ) : null}
+
             <div className="w-full flex space-x-1">
                 <span className="text-muted-foreground">Your Balance: </span>
                 <span>
