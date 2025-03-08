@@ -12,7 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { LoaderCircle, Clock } from "lucide-react";
 import { deTokenABI, poolABI, controllerABI } from "@/shared/abis";
 import { controllerAddress } from "@/shared/metadata";
-import { truncateNumberToTwoDecimals } from "@/lib/utils";
+import { truncateNumberToTwoDecimals, RAY } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { TableRow, TableCell } from "./ui/table";
@@ -38,6 +38,7 @@ type SuppliedCardProps = {
     icon: string;
     deTokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
+    testAPY: bigint;
 };
 
 type WithdrawDialogProps = {
@@ -62,6 +63,7 @@ export function SuppliedCard({
     icon,
     deTokenAddress,
     poolAddress,
+    testAPY,
 }: SuppliedCardProps) {
     const [step, setStep] = useState(1);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -84,12 +86,12 @@ export function SuppliedCard({
         ],
     });
 
-    const RAY = BigInt(10 ** 27);
-    const raypy =
-        data.data && data.data[1].result
-            ? (data.data[1].result as bigint)
-            : BigInt(0);
-    const apy = Number((raypy * BigInt(100)) / RAY);
+    // const raypy =
+    //     data.data && data.data[1].result
+    //         ? (data.data[1].result as bigint)
+    //         : BigInt(0);
+    const raypy = testAPY;
+    const apy = Number((raypy * BigInt(100)) / (RAY / BigInt(10 ** 2))) / 100;
 
     if (data.isFetching) {
         return (
@@ -124,7 +126,7 @@ export function SuppliedCard({
                     <LoaderCircle className="animate-spin" />
                 ) : data.data && data.data[0].result ? (
                     truncateNumberToTwoDecimals(
-                        formatEther(data.data![0].result as bigint)
+                        formatEther(data.data[0].result as bigint)
                     )
                 ) : (
                     "0.00"

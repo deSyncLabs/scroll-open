@@ -92,7 +92,9 @@ export function BorrowCard({
                 </div>
             </TableCell>
             <TableCell>
-                {data.isFetching ? (
+                {!account ? (
+                    "--"
+                ) : data.isFetching ? (
                     <LoaderCircle className="animate-spin" />
                 ) : data.data && data.data[0].result ? (
                     truncateNumberToTwoDecimals(
@@ -115,7 +117,12 @@ export function BorrowCard({
                     }}
                 >
                     <DialogTrigger asChild>
-                        <Button className="hover:cursor-pointer">Borrow</Button>
+                        <Button
+                            disabled={!account}
+                            className="hover:cursor-pointer"
+                        >
+                            Borrow
+                        </Button>
                     </DialogTrigger>
                     <BorrowDialog
                         step={step}

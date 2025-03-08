@@ -32,12 +32,14 @@ import {
     StepperSeparator,
     StepperTitle,
 } from "./ui/stepper";
+import { ConnectWalletButton } from "./connect-wallet-button";
 
 type SupplyCardProps = {
     symbol: string;
     icon: string;
     tokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
+    testAPY: bigint;
 };
 
 type SupplyDialogProps = {
@@ -62,6 +64,7 @@ export function SupplyCard({
     icon,
     tokenAddress,
     poolAddress,
+    testAPY,
 }: SupplyCardProps) {
     const [step, setStep] = useState(1);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -84,11 +87,12 @@ export function SupplyCard({
         ],
     });
 
-    const raypy =
-        data.data && data.data[1].result
-            ? (data.data[1].result as bigint)
-            : BigInt(0);
-    const apy = Number((raypy * BigInt(100)) / RAY);
+    // const raypy =
+    //     data.data && data.data[1].result
+    //         ? (data.data[1].result as bigint)
+    //         : BigInt(0);
+    const raypy = testAPY;
+    const apy = Number((raypy * BigInt(100)) / (RAY / BigInt(10 ** 2))) / 100;
 
     return (
         <TableRow>
@@ -103,7 +107,9 @@ export function SupplyCard({
                 </div>
             </TableCell>
             <TableCell>
-                {data.isFetching ? (
+                {!account ? (
+                    "--"
+                ) : data.isFetching ? (
                     <LoaderCircle className="animate-spin" />
                 ) : data.data && data.data[0].result ? (
                     truncateNumberToTwoDecimals(
@@ -129,7 +135,12 @@ export function SupplyCard({
                     }}
                 >
                     <DialogTrigger asChild>
-                        <Button className="hover:cursor-pointer">Supply</Button>
+                        <Button
+                            disabled={!account}
+                            className="hover:cursor-pointer"
+                        >
+                            Supply
+                        </Button>
                     </DialogTrigger>
                     <SupplyDialog
                         step={step}

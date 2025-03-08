@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ConnectKitButton } from "connectkit";
+import { ConnectWalletButton } from "./connect-wallet-button";
 import { Button } from "./ui/button";
 
 export function Navbar() {
@@ -16,7 +16,7 @@ export function Navbar() {
                         deSync
                     </Link>
 
-                    <ul className="flex space-x-2">
+                    <ul className="hidden sm:flex space-x-2">
                         <li>
                             <Button
                                 variant="ghost"
@@ -60,27 +60,7 @@ export function Navbar() {
                         </li>
                     </ul>
 
-                    <ConnectKitButton.Custom>
-                        {({
-                            isConnected,
-                            isConnecting,
-                            show,
-                            truncatedAddress,
-                        }) => (
-                            <Button
-                                onClick={show}
-                                className="hover:cursor-pointer"
-                                disabled={isConnecting}
-                                variant={isConnected ? "secondary" : "default"}
-                            >
-                                {isConnected
-                                    ? truncatedAddress
-                                    : isConnecting
-                                      ? "Connecting..."
-                                      : "Connect Wallet"}
-                            </Button>
-                        )}
-                    </ConnectKitButton.Custom>
+                    <ConnectWalletButton className="min-w-[150px]" />
                 </div>
             </nav>
         </header>

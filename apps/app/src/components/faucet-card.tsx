@@ -12,6 +12,7 @@ import { LoaderCircle } from "lucide-react";
 import { mintableERC20ABI } from "@/shared/abis";
 import { truncateAddress } from "@/lib/utils";
 import { Button } from "./ui/button";
+import { ConnectWalletButton } from "./connect-wallet-button";
 
 type FaucetCardProps = {
     symbol: string;
@@ -152,7 +153,9 @@ export function FaucetCard({ symbol, icon, address }: FaucetCardProps) {
                     <p className="text-muted-foreground flex space-x-1">
                         <span>{timeLeft ? "Mint In: " : "Mint: "}</span>
                         <span className="text-foreground font-medium flex space-x-1">
-                            {data.isFetching ? (
+                            {!account ? (
+                                "--"
+                            ) : data.isFetching ? (
                                 <LoaderCircle className="animate-spin text-sm" />
                             ) : timeLeft ? (
                                 <span>
@@ -193,7 +196,9 @@ export function FaucetCard({ symbol, icon, address }: FaucetCardProps) {
                     <p className="text-muted-foreground flex space-x-1">
                         <span>Your Balance: </span>
                         <span className="text-foreground font-medium">
-                            {data.isFetching ? (
+                            {!account ? (
+                                "--"
+                            ) : data.isFetching ? (
                                 <LoaderCircle className="animate-spin text-sm" />
                             ) : data.data && data.data[2].result ? (
                                 formatEther(data.data![2].result as bigint)
@@ -206,17 +211,23 @@ export function FaucetCard({ symbol, icon, address }: FaucetCardProps) {
             </div>
 
             <div className="w-full">
-                <Button
-                    className="w-full hover:cursor-pointer"
-                    onClick={handleMint}
-                    disabled={timeLeft !== null || minting || data.isFetching}
-                >
-                    {minting ? (
-                        <LoaderCircle className="animate-spin" />
-                    ) : (
-                        "Mint"
-                    )}
-                </Button>
+                {!account ? (
+                    <ConnectWalletButton className="w-full" />
+                ) : (
+                    <Button
+                        className="w-full hover:cursor-pointer"
+                        onClick={handleMint}
+                        disabled={
+                            timeLeft !== null || minting || data.isFetching
+                        }
+                    >
+                        {minting ? (
+                            <LoaderCircle className="animate-spin" />
+                        ) : (
+                            "Mint"
+                        )}
+                    </Button>
+                )}
             </div>
 
             {error && (
