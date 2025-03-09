@@ -149,6 +149,8 @@ abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable 
         _totalUnlockedIntents = 0;
         _totalUnlocked = 0;
         locked = false;
+
+        _depositsWhileGone = 0;
     }
 
     function deposit(uint256 amount_) external override nonReentrant {

@@ -136,6 +136,10 @@ contract DEToken is IDEToken, ERC20Upgradeable, ReentrancyGuardUpgradeable, Owna
         uint256 lastPoolUpdate = pool.lastUpdateTimestamp();
         uint256 lastAction = lastActionTimestamp[user_];
 
+        if (lastAction == 0) {
+            return 0;
+        }
+
         if (lastAction > lastPoolUpdate) {
             return 0;
         }

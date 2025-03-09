@@ -185,16 +185,17 @@ contract StratergyPoolTest is Test {
         vm.stopPrank();
 
         uint256 timeElapsedPool = block.timestamp - lastUpdateTimestamp;
-        uint256 timeElapsedAlice = lastUpdateTimestamp - deToken.lastActionTimestamp(alice);
+
+        uint256 timeElapsedAlice = block.timestamp - deToken.lastActionTimestamp(alice);
         uint256 interestRatePerSecond = pool.interestRatePerSecond();
-        uint256 interestCollectedPool = (1100 * 1e18 * interestRatePerSecond * timeElapsedPool / 1e27) + 1;
-        uint256 collectedInterestAlice = (100 * 1e18 * interestRatePerSecond * timeElapsedAlice) / 1e27;
+        uint256 interestCollectedPool = (1100 * 1e18 * (interestRatePerSecond * timeElapsedPool / 1e27));
+        uint256 collectedInterestAlice = (100 * 1e18 * (interestRatePerSecond * timeElapsedAlice) / 1e27);
 
         vm.prank(alice);
         pool.deposit(100 * 1e18);
 
-        assertEq(eth.balanceOf(address(pool)), 1200 * 1e18 + interestCollectedPool);
-        assertGt(deToken.balanceOf(alice), 200 * 1e18 + collectedInterestAlice);
+        assertGt(eth.balanceOf(address(pool)), 1200 * 1e18 + interestCollectedPool);
+        assertEq(deToken.balanceOf(alice), 200 * 1e18 + collectedInterestAlice);
     }
 
     function test_sendUnlockIntent() public {
