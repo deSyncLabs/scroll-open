@@ -86,11 +86,10 @@ export function SuppliedCard({
         ],
     });
 
-    // const raypy =
-    //     data.data && data.data[1].result
-    //         ? (data.data[1].result as bigint)
-    //         : BigInt(0);
-    const raypy = testAPY;
+    const raypy =
+        data.data && data.data[1].result
+            ? (data.data[1].result as bigint)
+            : BigInt(0);
     const apy = Number((raypy * BigInt(100)) / (RAY / BigInt(10 ** 2))) / 100;
 
     if (data.isFetching) {

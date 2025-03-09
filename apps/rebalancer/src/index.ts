@@ -1,7 +1,7 @@
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { scrollSepolia } from 'viem/chains';
-import { poolABI } from './abis';
+import { poolABI , mintableERC20ABI} from './abis';
 
 export default {
 	async scheduled(_: ScheduledController, env: Env, ctx: ExecutionContext) {
@@ -51,6 +51,15 @@ export default {
 				const hash = await walletClient.writeContract(request);
 				ctx.waitUntil(publicClient.waitForTransactionReceipt({ hash }));
 			}
+
+			const data = await publicClient.readContract({
+				address: '0x91A1EeE63f300B8f41AE6AF67eDEa2e2ed8c3f79',
+				abi: mintableERC20ABI,
+				functionName: 'balanceOf',
+				args: [pools[1]],
+			});
+
+			console.log("am: ",data);
 
 			for (const pool of pools) {
 				const { request } = await publicClient.simulateContract({

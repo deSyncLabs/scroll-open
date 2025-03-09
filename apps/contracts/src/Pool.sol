@@ -54,6 +54,8 @@ abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable 
     uint256 private _totalUnlockedIntents;
     uint256 internal _totalUnlocked;
 
+    uint256 private _depositsWhileGone;
+
     modifier onlyController() {
         if (msg.sender != address(controller)) {
             revert OnlyController();
@@ -154,6 +156,10 @@ abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable 
         deToken.mint(msg.sender, amount_);
 
         _lastDeposited[msg.sender] = block.timestamp;
+
+        if (locked) {
+            _depositsWhileGone += amount_;
+        }
 
         emit Deposited(msg.sender, amount_, block.timestamp);
     }
@@ -391,7 +397,7 @@ abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable 
         if (_afterExecutionToken0Balance > _beforeExecutionToken0Balance) {
             uint256 timeElapsed = block.timestamp - lastUpdateTimestamp;
             uint256 ratio = (
-                ((_afterExecutionToken0Balance - _beforeExecutionToken0Balance) * RayMath.RAY)
+                ((_afterExecutionToken0Balance - (_beforeExecutionToken0Balance + _depositsWhileGone)) * RayMath.RAY)
                     / _beforeExecutionToken0Balance
             );
 
@@ -401,6 +407,8 @@ abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable 
             _apy = ratioPerYear;
             interestRatePerSecond = ratioPerSecond;
             lastUpdateTimestamp = block.timestamp;
+
+            _depositsWhileGone = 0;
 
             return;
         }

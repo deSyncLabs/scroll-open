@@ -36,7 +36,7 @@ contract DEToken is IDEToken, ERC20Upgradeable, ReentrancyGuardUpgradeable, Owna
 
         _;
 
-        lastActionTimestamp[msg.sender] = block.timestamp;
+        lastActionTimestamp[user_] = block.timestamp;
     }
 
     modifier noDebt(address user_) {
