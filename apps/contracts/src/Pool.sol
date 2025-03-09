@@ -44,6 +44,12 @@ abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable 
     mapping(address => uint256) public borrowIntents;
     mapping(address => uint256) public borrowIntentTimings;
 
+    address[] private _borrowIntenters;
+    address[] private _unlockIntenters;
+
+    mapping(address => bool) private _isInBorrowIntenters;
+    mapping(address => bool) private _isInUnlockIntenters;
+
     bool public locked;
     uint256 private _totalUnlockedIntents;
     uint256 internal _totalUnlocked;
@@ -152,17 +158,6 @@ abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable 
         emit Deposited(msg.sender, amount_, block.timestamp);
     }
 
-    function unlock(uint256 amount_) external override nonReentrant tryWithdrawing(msg.sender) {
-        unlockIntents[msg.sender] += amount_;
-        unlockIntentTimings[msg.sender] = block.timestamp;
-
-        deToken.burn(msg.sender, amount_);
-
-        _totalUnlockedIntents += amount_;
-
-        emit UnlockIntentPosted(msg.sender, amount_, block.timestamp);
-    }
-
     function _lock() internal {
         if (locked) {
             revert AlreadyLocked();
@@ -183,6 +178,22 @@ abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable 
         locked = false;
     }
 
+    function unlock(uint256 amount_) external override nonReentrant tryWithdrawing(msg.sender) {
+        unlockIntents[msg.sender] += amount_;
+        unlockIntentTimings[msg.sender] = block.timestamp;
+
+        if (!_isInUnlockIntenters[msg.sender]) {
+            _unlockIntenters.push(msg.sender);
+            _isInUnlockIntenters[msg.sender] = true;
+        }
+
+        _totalUnlockedIntents += amount_;
+
+        deToken.burn(msg.sender, amount_);
+
+        emit UnlockIntentPosted(msg.sender, amount_, block.timestamp);
+    }
+
     function withdraw() external override nonReentrant {
         uint256 amount = unlockIntents[msg.sender];
 
@@ -201,9 +212,38 @@ abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable 
         emit Withdrawn(msg.sender, amount, block.timestamp);
     }
 
+    function withdrawForEveryone() external override onlyOwner {
+        for (uint256 i = 0; i < _unlockIntenters.length; i++) {
+            address account = _unlockIntenters[i];
+            uint256 amount = unlockIntents[account];
+
+            if (amount == 0) {
+                continue;
+            }
+
+            if (unlockIntentTimings[account] > lastUpdateTimestamp) {
+                continue;
+            }
+
+            token.safeTransfer(account, amount);
+            unlockIntents[account] = 0;
+            _isInUnlockIntenters[account] = false;
+            _totalUnlocked -= amount;
+
+            emit Withdrawn(account, amount, block.timestamp);
+        }
+
+        _unlockIntenters = new address[](0);
+    }
+
     function _borrow(address account_, uint256 amount_) external override onlyController tryBorrowing(account_) {
         borrowIntents[account_] += amount_;
         borrowIntentTimings[account_] = block.timestamp;
+
+        if (!_isInBorrowIntenters[account_]) {
+            _borrowIntenters.push(account_);
+            _isInBorrowIntenters[account_] = true;
+        }
 
         _totalUnlocked += amount_;
 
@@ -227,6 +267,31 @@ abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable 
         _totalUnlocked -= amount;
 
         emit Borrowed(msg.sender, amount, block.timestamp);
+    }
+
+    function borrowForEveryone() external override onlyOwner {
+        for (uint256 i = 0; i < _borrowIntenters.length; i++) {
+            address account = _borrowIntenters[i];
+            uint256 amount = borrowIntents[account];
+
+            if (amount == 0) {
+                continue;
+            }
+
+            if (borrowIntentTimings[account] > lastUpdateTimestamp) {
+                continue;
+            }
+
+            token.safeTransfer(account, amount);
+            debtToken.mint(account, amount);
+            borrowIntents[account] = 0;
+            _isInBorrowIntenters[account] = false;
+            _totalUnlocked -= amount;
+
+            emit Borrowed(account, amount, block.timestamp);
+        }
+
+        _borrowIntenters = new address[](0);
     }
 
     function _liquidate(address account_, address receiver_) external override onlyController {

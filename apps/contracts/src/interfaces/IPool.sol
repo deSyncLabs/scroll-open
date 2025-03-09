@@ -59,9 +59,13 @@ interface IPool {
 
     function withdraw() external;
 
+    function withdrawForEveryone() external;
+
     function _borrow(address account_, uint256 amount_) external;
 
     function borrow() external;
+
+    function borrowForEveryone() external;
 
     function _liquidate(address account_, address receiver_) external;
 

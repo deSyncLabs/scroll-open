@@ -8,6 +8,7 @@ import {IDEToken} from "src/interfaces/IDEToken.sol";
 import {IDebtToken} from "src/interfaces/IDebtToken.sol";
 import {DEToken} from "src/DEToken.sol";
 import {DebtToken} from "src/DebtToken.sol";
+import {IPool} from "src/interfaces/IPool.sol";
 import {MockMintableERC20} from "src/mocks/MockMintableERC20.sol";
 import {MockNonFungiblePositionManager} from "src/mocks/MockNonFungiblePositionManager.sol";
 import {MockAggregatorV3} from "src/mocks/MockAggregatorV3.sol";
@@ -748,5 +749,224 @@ contract StratergyPoolTest is Test {
         uint256 inUSD = 100 * 3000 * 1e18;
 
         assertEq(pool.collateralOfInUSD(alice), inUSD);
+    }
+
+    function test_depositEventEmitted() public {
+        vm.prank(alice);
+
+        vm.expectEmit(address(pool));
+        emit IPool.Deposited(alice, 100 * 1e18, block.timestamp);
+
+        pool.deposit(100 * 1e18);
+    }
+
+    function test_depositEventOnDoubleDeposit() public {
+        vm.startPrank(alice);
+
+        vm.expectEmit(address(pool));
+        emit IPool.Deposited(alice, 100 * 1e18, block.timestamp);
+        pool.deposit(100 * 1e18);
+
+        vm.expectEmit();
+        emit IPool.Deposited(alice, 50 * 1e18, block.timestamp);
+        pool.deposit(50 * 1e18);
+    }
+
+    function test_depositEventOnDoubleDepositAfterAnHour() public {
+        vm.startPrank(alice);
+
+        vm.expectEmit(address(pool));
+        emit IPool.Deposited(alice, 50 * 1e18, block.timestamp);
+        pool.deposit(50 * 1e18);
+
+        skip(1 hours);
+
+        vm.expectEmit(address(pool));
+        emit IPool.Deposited(alice, 100 * 1e18, block.timestamp);
+        pool.deposit(100 * 1e18);
+    }
+
+    function test_massWithdrawWorks() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(bob);
+        pool.deposit(100 * 1e18);
+
+        skip(1 minutes);
+
+        vm.prank(alice);
+        pool.unlock(50 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 minutes);
+
+        vm.prank(bob);
+        pool.unlock(75 * 1e18);
+
+        skip(1 hours);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        vm.prank(owner);
+        pool.withdrawForEveryone();
+
+        assertEq(eth.balanceOf(alice), 950 * 1e18);
+        assertEq(eth.balanceOf(bob), 975 * 1e18);
+    }
+
+    function test_massWithdrawWorksEvenWhenOneHasNoIntent() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(bob);
+        pool.deposit(100 * 1e18);
+
+        skip(1 minutes);
+
+        vm.prank(alice);
+        pool.unlock(50 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 minutes);
+
+        vm.prank(bob);
+        pool.unlock(75 * 1e18);
+
+        skip(1 hours);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        vm.prank(bob);
+        pool.withdraw();
+
+        assertEq(eth.balanceOf(alice), 900 * 1e18);
+        assertEq(eth.balanceOf(bob), 975 * 1e18);
+    }
+
+    function test_massWithdrawWorksWithDoubleIntents() public {
+        vm.prank(alice);
+        pool.deposit(100 * 1e18);
+
+        vm.prank(bob);
+        pool.deposit(100 * 1e18);
+
+        skip(1 minutes);
+
+        vm.prank(alice);
+        pool.unlock(50 * 1e18);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 minutes);
+
+        vm.prank(bob);
+        pool.unlock(75 * 1e18);
+
+        skip(1 hours);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        vm.prank(alice);
+        pool.unlock(25 * 1e18);
+
+        vm.prank(bob);
+        pool.unlock(25 * 1e18);
+
+        vm.prank(owner);
+        pool.withdrawForEveryone();
+
+        assertEq(eth.balanceOf(alice), 975 * 1e18);
+        assertEq(eth.balanceOf(bob), 1000 * 1e18);
+    }
+
+    function test_massWithdrawWith100Users() public {
+        address[] memory users = new address[](100);
+        for (uint256 i = 1000000; i < 1000100; i++) {
+            users[i - 1000000] = vm.addr(i);
+
+            vm.prank(owner);
+            eth._mint_(users[i - 1000000], 1000 * 1e18);
+
+            vm.startPrank(users[i - 1000000]);
+            eth.approve(address(pool), 1000 * 1e18);
+            pool.deposit((100 + (i - 1000000)) * 1e18);
+            vm.stopPrank();
+        }
+
+        skip(1 minutes);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 minutes);
+
+        for (uint256 i = 0; i < 100; i++) {
+            vm.startPrank(users[i]);
+            pool.unlock((50 + i) * 1e18);
+            vm.stopPrank();
+        }
+
+        skip(1 hours);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        vm.prank(owner);
+        pool.withdrawForEveryone();
+
+        for (uint256 i = 0; i < 100; i++) {
+            assertEq(eth.balanceOf(users[i]), 950 * 1e18);
+        }
+    }
+
+    function test_massBorrowWorks() public {
+        address[] memory users = new address[](100);
+        for (uint256 i = 1000000; i < 1000100; i++) {
+            users[i - 1000000] = vm.addr(i);
+
+            vm.prank(owner);
+            eth._mint_(users[i - 1000000], 1000 * 1e18);
+
+            vm.startPrank(users[i - 1000000]);
+            eth.approve(address(pool), 1000 * 1e18);
+            pool.deposit((100 + (i - 1000000)) * 1e18);
+            vm.stopPrank();
+        }
+
+        skip(1 minutes);
+
+        vm.prank(owner);
+        pool.executeStratergy();
+
+        skip(1 minutes);
+
+        for (uint256 i = 0; i < 100; i++) {
+            vm.startPrank(deployer);
+            pool._borrow(users[i], (50 + i) * 1e18);
+            vm.stopPrank();
+        }
+
+        skip(1 hours);
+
+        vm.prank(owner);
+        pool.unexecuteStratergy();
+
+        vm.prank(owner);
+        pool.borrowForEveryone();
+
+        for (uint256 i = 0; i < 100; i++) {
+            assertEq(eth.balanceOf(users[i]), 950 * 1e18);
+            assertEq(deToken.balanceOf(users[i]), (100 + i) * 1e18);
+            assertEq(debtToken.balanceOf(users[i]), (50 + i) * 1e18);
+        }
     }
 }
