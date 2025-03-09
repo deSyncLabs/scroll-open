@@ -52,7 +52,7 @@ contract DeployScript is Script {
         admin = vm.addr(adminPrivateKey);
 
         liquidationThreshold = 0.95 * 1e27; // 95% -> 0.95 -> to Ray -> 0.95 * 1e27 -> 1e26
-        interestRate = 0.1 * 1e27; // 10% -> 0.10 -> to Ray -> 0.1 * 1e27 -> 1e26
+        interestRate = 0.23 * 1e27; // 23% -> 0.23 -> to Ray -> 0.23 * 1e27 -> 1e26
         ammPoolFee = 0;
 
         console.log("Deploying all contracts");
@@ -77,7 +77,7 @@ contract DeployScript is Script {
         usdtPriceFeed = AggregatorV3Interface(usdtPriceFeedAddress);
 
         vm.broadcast(deployer);
-        nonFungiblePositionManager = new MockNonFungiblePositionManager(0, admin);
+        nonFungiblePositionManager = new MockNonFungiblePositionManager(interestRate, admin);
 
         address[] memory _tokens = new address[](4);
         _tokens[0] = address(eth);
@@ -226,5 +226,15 @@ contract DeployScript is Script {
 
         console.log("Permissions given to the contracts");
         console.log("Added liquidity to the pools");
+
+        console.log("Executing the strategies");
+
+        vm.startBroadcast(admin);
+        ethPool.executeStratergy();
+        btcPool.executeStratergy();
+        usdcPool.executeStratergy();
+        vm.stopBroadcast();
+
+        console.log("Executed the strategies");
     }
 }

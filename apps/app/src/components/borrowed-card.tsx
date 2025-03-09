@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     useAccount,
     useReadContracts,
@@ -10,7 +10,7 @@ import {
 import { formatEther, parseEther } from "viem";
 import { useQueryClient } from "@tanstack/react-query";
 import { LoaderCircle, CircleCheck, HelpCircle } from "lucide-react";
-import { debtTokenABI, poolABI } from "@/shared/abis";
+import { debtTokenABI, poolABI, mintableERC20ABI } from "@/shared/abis";
 import { truncateNumberToTwoDecimals } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -41,6 +41,7 @@ import {
 type BorrowedCardProps = {
     symbol: string;
     icon: string;
+    tokenAddress: `0x${string}`;
     debtTokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
 };
@@ -50,6 +51,7 @@ type RepayDialogProps = {
     setStep: (step: number) => void;
     symbol: string;
     account: string;
+    tokenAddress: `0x${string}`;
     debtTokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
 };
@@ -57,6 +59,7 @@ type RepayDialogProps = {
 type StepProps = {
     symbol: string;
     account: string;
+    tokenAddress: `0x${string}`;
     debtTokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
     setStep: (step: number) => void;
@@ -65,6 +68,7 @@ type StepProps = {
 export function BorrowedCard({
     symbol,
     icon,
+    tokenAddress,
     debtTokenAddress,
     poolAddress,
 }: BorrowedCardProps) {
@@ -153,6 +157,7 @@ export function BorrowedCard({
                         setStep={setStep}
                         symbol={symbol}
                         account={account!}
+                        tokenAddress={tokenAddress}
                         debtTokenAddress={debtTokenAddress}
                         poolAddress={poolAddress}
                     />
@@ -167,19 +172,27 @@ function RepayDialog({
     setStep,
     symbol,
     account,
+    tokenAddress,
     debtTokenAddress,
     poolAddress,
 }: RepayDialogProps) {
     const steps = [
         {
             step: 1,
+            dialogTitle: `Please approve deSync to spend your ${symbol}`,
+            dialogDescription: `deSync needs your approval to spend your ${symbol} on your behalf.`,
+            component: ApproveStep,
+            stepTitle: "Approve",
+        },
+        {
+            step: 2,
             dialogTitle: `Repay ${symbol}`,
             dialogDescription: `Repay your debt to unlock your collateral.`,
             component: RepayStep,
             stepTitle: "Repay",
         },
         {
-            step: 2,
+            step: 3,
             dialogTitle: "Done",
             dialogDescription: "Your debt has been repaid.",
             component: DoneStep,
@@ -207,6 +220,7 @@ function RepayDialog({
                     <currentStep.component
                         symbol={symbol}
                         account={account}
+                        tokenAddress={tokenAddress}
                         debtTokenAddress={debtTokenAddress}
                         poolAddress={poolAddress}
                         setStep={setStep}
@@ -231,6 +245,103 @@ function RepayDialog({
                 </Stepper>
             </DialogFooter>
         </DialogContent>
+    );
+}
+
+function ApproveStep({
+    account,
+    tokenAddress,
+    poolAddress,
+    setStep,
+}: StepProps) {
+    const MAX_ALLOWANCE = BigInt(
+        "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+    );
+
+    const isMounted = useRef(true);
+
+    const [approving, setApproving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const data = useReadContracts({
+        contracts: [
+            {
+                address: tokenAddress,
+                abi: mintableERC20ABI,
+                functionName: "allowance",
+                args: [account, poolAddress],
+            },
+        ],
+    });
+
+    const approve = useWriteContract({
+        mutation: {
+            onMutate: () => {
+                setError(null);
+                setApproving(true);
+            },
+            onError: ({ name, message }) => {
+                setError(name);
+                setApproving(false);
+
+                console.error(message);
+            },
+        },
+    });
+
+    const receipt = useWaitForTransactionReceipt({ hash: approve.data });
+
+    useEffect(() => {
+        if (receipt.status === "success") {
+            setApproving(false);
+            setStep(2);
+        } else if (receipt.status === "error") {
+            setApproving(false);
+
+            if (receipt.error) setError(receipt.error.name);
+        }
+    }, [receipt.status]);
+
+    async function handleApprove() {
+        try {
+            await approve.writeContractAsync({
+                abi: mintableERC20ABI,
+                address: tokenAddress,
+                functionName: "approve",
+                args: [poolAddress, MAX_ALLOWANCE],
+            });
+        } catch (error) {}
+    }
+
+    useEffect(() => {
+        if (
+            data.data &&
+            data.data[0].result &&
+            (data.data[0].result as bigint) >= MAX_ALLOWANCE &&
+            isMounted.current
+        ) {
+            setStep(2);
+        }
+    }, [data.data, setStep]);
+
+    if (data.isFetching) return <LoaderCircle className="animate-spin" />;
+
+    return (
+        <div className="flex flex-col items-center gap-4">
+            <Button
+                onClick={handleApprove}
+                className="w-full hover:cursor-pointer"
+                disabled={approving}
+            >
+                {approving ? (
+                    <LoaderCircle className="animate-spin" />
+                ) : (
+                    "Approve"
+                )}
+            </Button>
+
+            {error && <div className="text-red-500">{error}</div>}
+        </div>
     );
 }
 

@@ -23,6 +23,7 @@ export default function BorrowPage() {
             key={asset.address}
             symbol={asset.symbol}
             icon={asset.icon}
+            tokenAddress={asset.address}
             debtTokenAddress={asset.debtTokenAddress}
             poolAddress={asset.poolAddress}
         />

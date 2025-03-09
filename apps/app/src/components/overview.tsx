@@ -178,7 +178,7 @@ export function Overview() {
                                 size={32}
                             />
                         ) : data.data && data.data[2].result ? (
-                            healthFactor > 100 ? (
+                            healthFactor > 1000000 ? (
                                 <Infinity size={32} />
                             ) : (
                                 truncateNumberToTwoDecimals(

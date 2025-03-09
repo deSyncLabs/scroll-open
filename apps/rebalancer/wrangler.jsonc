@@ -14,12 +14,17 @@
 		"crons": [
 			"* * * * *"
 		]
-	}
+	},
+	"vars": {
+		"BTC_POOL_ADDRESS": "0xCA87833e830652C2ab07E1e03eBa4F2c246D3b58",
+		"ETH_POOL_ADDRESS": "0x8CeA85eC7f3D314c4d144e34F2206C8Ac0bbadA1",
+		"USDC_POOL_ADDRESS": "0x7A5EC257391817ef241ef8451642cC6b222d4f8C"
+	},
+	"placement": { "mode": "smart" }
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
 	 */
-	// "placement": { "mode": "smart" },
 
 	/**
 	 * Bindings
