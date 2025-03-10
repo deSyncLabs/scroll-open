@@ -130,7 +130,7 @@ export default function BorrowPage() {
                             </Table>
                         ) : (
                             <p className="text-muted-foreground">
-                                You haven't borrowed anything yet
+                                {"You haven't borrowed anything yet"}
                             </p>
                         )}
                     </div>

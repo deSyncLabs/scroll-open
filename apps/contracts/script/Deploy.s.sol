@@ -52,8 +52,9 @@ contract DeployScript is Script {
         admin = vm.addr(adminPrivateKey);
 
         liquidationThreshold = 0.95 * 1e27; // 95% -> 0.95 -> to Ray -> 0.95 * 1e27 -> 1e26
-        interestRate = 0.023 * 1e27; // 23% -> 0.23 -> to Ray -> 0.23 * 1e27 -> 1e26
+        interestRate = 0.018 * 1e27; // 18% -> 0.18 -> to Ray -> 0.018 * 1e27 -> 1e25
         ammPoolFee = 0;
+        
 
         console.log("Deploying all contracts");
 

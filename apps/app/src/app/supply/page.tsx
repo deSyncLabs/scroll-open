@@ -90,7 +90,7 @@ export default function SupplyPage() {
                             </Table>
                         ) : (
                             <p className="text-muted-foreground">
-                                You haven't supplied anything yet
+                                {"You haven't supplied anything yet"}
                             </p>
                         )}
                     </div>

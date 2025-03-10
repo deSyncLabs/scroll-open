@@ -63,7 +63,6 @@ export function SuppliedCard({
     icon,
     deTokenAddress,
     poolAddress,
-    testAPY,
 }: SuppliedCardProps) {
     const [step, setStep] = useState(1);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -334,7 +333,9 @@ function WithdrawStep({
                 functionName: "unlock",
                 args: [parseEther(amount)],
             });
-        } catch (error) {}
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     return (
@@ -394,7 +395,7 @@ function WithdrawStep({
     );
 }
 
-function DoneStep(_: StepProps) {
+function DoneStep({}: StepProps) {
     return (
         <div className="flex flex-col items-center gap-2">
             <Clock className="stroke-green-500" size={50} />

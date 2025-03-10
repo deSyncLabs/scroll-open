@@ -310,7 +310,9 @@ function ApproveStep({
                 functionName: "approve",
                 args: [poolAddress, MAX_ALLOWANCE],
             });
-        } catch (error) {}
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     useEffect(() => {
@@ -346,7 +348,6 @@ function ApproveStep({
 }
 
 function RepayStep({
-    symbol,
     account,
     debtTokenAddress,
     poolAddress,
@@ -438,7 +439,9 @@ function RepayStep({
                 functionName: "repay",
                 args: [parseEther(amount)],
             });
-        } catch (error) {}
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     return (
@@ -506,7 +509,7 @@ function RepayStep({
     );
 }
 
-function DoneStep(_: StepProps) {
+function DoneStep({}: StepProps) {
     return (
         <div className="flex flex-col items-center gap-2">
             <CircleCheck className="stroke-green-500" size={50} />

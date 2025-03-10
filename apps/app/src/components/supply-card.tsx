@@ -32,7 +32,6 @@ import {
     StepperSeparator,
     StepperTitle,
 } from "./ui/stepper";
-import { ConnectWalletButton } from "./connect-wallet-button";
 
 type SupplyCardProps = {
     symbol: string;
@@ -64,7 +63,6 @@ export function SupplyCard({
     icon,
     tokenAddress,
     poolAddress,
-    testAPY,
 }: SupplyCardProps) {
     const [step, setStep] = useState(1);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -294,7 +292,9 @@ function ApproveStep({
                 functionName: "approve",
                 args: [poolAddress, MAX_ALLOWANCE],
             });
-        } catch (error) {}
+        } catch (error) {
+            console.log(error);
+        }
     }
 
     useEffect(() => {
@@ -476,7 +476,7 @@ function SupplyStep({
     );
 }
 
-function DoneStep(_: StepProps) {
+function DoneStep({}: StepProps) {
     return (
         <div className="flex flex-col items-center gap-2">
             <CircleCheck className="stroke-green-500" size={50} />

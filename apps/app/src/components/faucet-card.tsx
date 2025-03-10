@@ -127,7 +127,9 @@ export function FaucetCard({ symbol, icon, address }: FaucetCardProps) {
                 address: address as `0x${string}`,
                 functionName: "mint",
             });
-        } catch (error) {}
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     return (
