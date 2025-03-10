@@ -1,0 +1,26 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "liquidator",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-03-03",
+	"observability": {
+		"enabled": true
+	},
+	"triggers": {
+		"crons": [
+			"0 */6 * * *"
+		]
+	},
+	"vars": {
+		"BTC_POOL_ADDRESS": "0xCA87833e830652C2ab07E1e03eBa4F2c246D3b58",
+		"ETH_POOL_ADDRESS": "0x8CeA85eC7f3D314c4d144e34F2206C8Ac0bbadA1",
+		"USDC_POOL_ADDRESS": "0x7A5EC257391817ef241ef8451642cC6b222d4f8C",
+		"CONTROLLER_ADDRESS": "0xf93b0549cD50c849D792f0eAE94A598fA77C7718",
+		"FROM_BLOCK": 8451696
+	},
+	"placement": { "mode": "smart" }
+}
