@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {IPool} from "src/interfaces/IPool.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract BroowDistributor is AccessControl {
+contract BorrowDistributor is AccessControl {
     bytes32 public constant AUTHORIZED_ROLE = keccak256("AUTHORIZED_ROLE");
 
     event Executed(uint256 indexed timestamp);

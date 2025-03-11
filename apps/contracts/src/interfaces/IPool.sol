@@ -2,11 +2,12 @@
 pragma solidity ^0.8.20;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 import {IDEToken} from "./IDEToken.sol";
 import {IDebtToken} from "./IDebtToken.sol";
 import {IController} from "./IController.sol";
 
-interface IPool {
+interface IPool is IAccessControl {
     error ZeroAddress();
 
     error OnlyDEToken();
@@ -104,4 +105,6 @@ interface IPool {
     function locked() external view returns (bool);
 
     function balance() external view returns (uint256);
+
+    function AUTHORIZED_ROLE() external view returns (bytes32);
 }
