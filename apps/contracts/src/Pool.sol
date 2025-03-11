@@ -228,7 +228,7 @@ abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable,
         emit Withdrawn(msg.sender, amount, block.timestamp);
     }
 
-    function withdrawForEveryone() external override onlyOwner {
+    function withdrawForEveryone() external override onlyRole(AUTHORIZED_ROLE) {
         for (uint256 i = 0; i < _unlockIntenters.length; i++) {
             address account = _unlockIntenters[i];
             uint256 amount = unlockIntents[account];
@@ -285,7 +285,7 @@ abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable,
         emit Borrowed(msg.sender, amount, block.timestamp);
     }
 
-    function borrowForEveryone() external override onlyOwner {
+    function borrowForEveryone() external override onlyRole(AUTHORIZED_ROLE) {
         for (uint256 i = 0; i < _borrowIntenters.length; i++) {
             address account = _borrowIntenters[i];
             uint256 amount = borrowIntents[account];

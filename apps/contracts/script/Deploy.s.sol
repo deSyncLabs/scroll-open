@@ -261,8 +261,16 @@ contract DeployScript is Script {
 
         vm.startBroadcast(admin);
         ethPool.grantRole(ethPool.AUTHORIZED_ROLE(), address(ethPoolExecutionist));
+        ethPool.grantRole(ethPool.AUTHORIZED_ROLE(), address(ethPoolWithdrawDistributor));
+        ethPool.grantRole(ethPool.AUTHORIZED_ROLE(), address(ethPoolBorrowDistributor));
+        
         btcPool.grantRole(btcPool.AUTHORIZED_ROLE(), address(btcPoolExecutionist));
+        btcPool.grantRole(btcPool.AUTHORIZED_ROLE(), address(btcPoolWithdrawDistributor));
+        btcPool.grantRole(btcPool.AUTHORIZED_ROLE(), address(btcPoolBorrowDistributor));
+
         usdcPool.grantRole(usdcPool.AUTHORIZED_ROLE(), address(usdcPoolExecutionist));
+        usdcPool.grantRole(usdcPool.AUTHORIZED_ROLE(), address(usdcPoolWithdrawDistributor));
+        usdcPool.grantRole(usdcPool.AUTHORIZED_ROLE(), address(usdcPoolBorrowDistributor));
         vm.stopBroadcast();
 
         console.log("Permissions given to the contracts");
