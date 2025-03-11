@@ -12,6 +12,11 @@ ENV REBALANCER_EOA_PRIVATE_KEY=$REBALANCER_EOA_PRIVATE_KEY
 ENV POOL_ADDRESS=$POOL_ADDRESS
 ENV SCROLL_SEPOLIA_RPC_URL=$SCROLL_SEPOLIA_RPC_URL
 
+RUN git init
+
+RUN git add .
+
+RUN git commit -m "Initial commit"
 
 RUN forge install OpenZeppelin/openzeppelin-contracts
 
