@@ -26,3 +26,6 @@
 [submodule "apps/rebalancer/lib/forge-std"]
 	path = apps/rebalancer/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "apps/rebalancer/lib/openzeppelin-contracts"]
+	path = apps/rebalancer/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
