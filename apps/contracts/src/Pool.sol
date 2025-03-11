@@ -1,7 +1,8 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -15,10 +16,12 @@ import {IDEToken} from "./interfaces/IDEToken.sol";
 import {IDebtToken} from "./interfaces/IDebtToken.sol";
 import {IController} from "./interfaces/IController.sol";
 
-abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable {
+abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable, AccessControlUpgradeable {
     using SafeERC20 for IERC20;
     using SafeCast for int256;
     using Clones for address;
+
+    bytes32 public constant AUTHORIZED_ROLE = keccak256("AUTHORIZED_ROLE");
 
     address public immutable deTokenImplementation;
     address public immutable debtTokenImplementation;
@@ -124,6 +127,7 @@ abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable 
 
     function initialize(address token_, address controller_, address priceFeed_, address owner_) internal {
         __Ownable_init(owner_);
+        __AccessControl_init();
         __ReentrancyGuard_init();
 
         string memory deName = string.concat("deSync ", IERC20Metadata(token_).name());
@@ -151,6 +155,10 @@ abstract contract Pool is IPool, ReentrancyGuardUpgradeable, OwnableUpgradeable 
         locked = false;
 
         _depositsWhileGone = 0;
+
+        _setRoleAdmin(AUTHORIZED_ROLE, DEFAULT_ADMIN_ROLE);
+        _grantRole(DEFAULT_ADMIN_ROLE, owner_);
+        _grantRole(AUTHORIZED_ROLE, owner_);
     }
 
     function deposit(uint256 amount_) external override nonReentrant {

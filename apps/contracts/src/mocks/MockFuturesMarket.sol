@@ -6,7 +6,6 @@ import {AggregatorV3Interface} from "@chainlink/interfaces/feeds/AggregatorV3Int
 import {IMintableERC20} from "src/interfaces/IMintableERC20.sol";
 
 contract MockFuturesMarket is AccessControl {
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant AUTHORIZED_ROLE = keccak256("AUTHORIZED_ROLE");
 
     error PriceFeedNotFound(address token_);
@@ -40,8 +39,8 @@ contract MockFuturesMarket is AccessControl {
 
         _positionId = 0;
 
-        _grantRole(ADMIN_ROLE, admin_);
-        _setRoleAdmin(AUTHORIZED_ROLE, ADMIN_ROLE);
+        _grantRole(DEFAULT_ADMIN_ROLE, admin_);
+        _setRoleAdmin(AUTHORIZED_ROLE, DEFAULT_ADMIN_ROLE);
     }
 
     function openPosition(address token0_, address token1_, uint256 amount0_, bool isLong_)
@@ -127,11 +126,11 @@ contract MockFuturesMarket is AccessControl {
         return (isProfit, profitOrLoss);
     }
 
-    function addPriceFeed(address token_, address priceFeed_) external onlyRole(ADMIN_ROLE) {
+    function addPriceFeed(address token_, address priceFeed_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _priceFeeds[token_] = AggregatorV3Interface(priceFeed_);
     }
 
-    function _addAuthorized(address account_) external onlyRole(ADMIN_ROLE) {
+    function _addAuthorized(address account_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(AUTHORIZED_ROLE, account_);
     }
 }

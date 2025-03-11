@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import {TickMath} from "@uniswap/v3-core/contracts/libraries/TickMath.sol";
@@ -105,7 +105,7 @@ contract StratergyPool is IStratergyPool, Pool, IERC721Receiver {
         _futuresMarket = IFuturesMarket(futuresMarket_);
     }
 
-    function executeStratergy() external override onlyOwner {
+    function executeStratergy() external override onlyRole(AUTHORIZED_ROLE) {
         if (isStratergyActive) {
             revert StratergyAlreadyActive();
         }
@@ -148,7 +148,7 @@ contract StratergyPool is IStratergyPool, Pool, IERC721Receiver {
         emit StartedStratergy(block.timestamp);
     }
 
-    function unexecuteStratergy() external override onlyOwner {
+    function unexecuteStratergy() external override onlyRole(AUTHORIZED_ROLE) {
         if (!isStratergyActive) {
             revert StratergyNotActive();
         }
