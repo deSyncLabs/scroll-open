@@ -9,7 +9,7 @@ contract DistributeWithdrawScript is Script {
     IPool public ETHPool;
     IPool public USDCPool;
 
-    function run() {
+    function run() public {
         uint256 distributorEOAPrivateKey = vm.envUint("DISTRIBUTOR_EOA_PRIVATE_KEY");
         address distributorEOA = vm.addr(distributorEOAPrivateKey);
 
