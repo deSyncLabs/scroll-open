@@ -8,7 +8,6 @@ import {IMintableERC20} from "src/interfaces/IMintableERC20.sol";
 
 contract MockMintableERC20 is IMintableERC20, ERC20, AccessControl {
     bytes32 public constant MINTER_BURNER_ROLE = keccak256("MINTER_BURNER_ROLE");
-    bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
 
     address public ammPool;
 
@@ -19,8 +18,8 @@ contract MockMintableERC20 is IMintableERC20, ERC20, AccessControl {
         ERC20(name_, symbol_)
     {
         _mintAmount = mintAmount_;
-        _grantRole(OWNER_ROLE, owner_);
-        _setRoleAdmin(MINTER_BURNER_ROLE, OWNER_ROLE);
+        _grantRole(DEFAULT_ADMIN_ROLE, owner_);
+        _setRoleAdmin(MINTER_BURNER_ROLE, DEFAULT_ADMIN_ROLE);
     }
 
     function mint() external override {
@@ -42,11 +41,11 @@ contract MockMintableERC20 is IMintableERC20, ERC20, AccessControl {
         super._burn(account_, amount_);
     }
 
-    function _addMinterBurner(address account_) external override onlyRole(OWNER_ROLE) {
+    function _addMinterBurner(address account_) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(MINTER_BURNER_ROLE, account_);
     }
 
-    function _setAmmPool(address ammPool_) external override onlyRole(OWNER_ROLE) {
+    function _setAmmPool(address ammPool_) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         ammPool = ammPool_;
     }
 

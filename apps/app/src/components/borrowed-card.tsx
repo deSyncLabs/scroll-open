@@ -9,9 +9,15 @@ import {
 } from "wagmi";
 import { formatEther, parseEther } from "viem";
 import { useQueryClient } from "@tanstack/react-query";
-import { LoaderCircle, CircleCheck, HelpCircle } from "lucide-react";
+import {
+    LoaderCircle,
+    CircleCheck,
+    HelpCircle,
+    ExternalLink,
+} from "lucide-react";
 import { debtTokenABI, poolABI, mintableERC20ABI } from "@/shared/abis";
-import { truncateNumberToTwoDecimals } from "@/lib/utils";
+import { explorerBaseUrl } from "@/shared/metadata";
+import { truncateNumberToTwoDecimals, truncateAddress } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { TableRow, TableCell } from "./ui/table";
@@ -62,7 +68,9 @@ type StepProps = {
     tokenAddress: `0x${string}`;
     debtTokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
+    transactionHash: `0x${string}` | undefined;
     setStep: (step: number) => void;
+    setTransactionHash: (hash: `0x${string}` | undefined) => void;
 };
 
 export function BorrowedCard({
@@ -176,6 +184,10 @@ function RepayDialog({
     debtTokenAddress,
     poolAddress,
 }: RepayDialogProps) {
+    const [transactionHash, setTransactionHash] = useState<
+        `0x${string}` | undefined
+    >();
+
     const steps = [
         {
             step: 1,
@@ -223,7 +235,9 @@ function RepayDialog({
                         tokenAddress={tokenAddress}
                         debtTokenAddress={debtTokenAddress}
                         poolAddress={poolAddress}
+                        transactionHash={transactionHash}
                         setStep={setStep}
+                        setTransactionHash={setTransactionHash}
                     />
                 </>
             )}
@@ -352,6 +366,7 @@ function RepayStep({
     debtTokenAddress,
     poolAddress,
     setStep,
+    setTransactionHash,
 }: StepProps) {
     const [amount, setAmount] = useState<string>("");
     const [validAmount, setValidAmount] = useState(false);
@@ -402,6 +417,7 @@ function RepayStep({
     useEffect(() => {
         if (receipt.status === "success") {
             setRepaying(false);
+            setTransactionHash(repay.data);
             queryClient.invalidateQueries();
             setStep(2);
         } else if (receipt.status === "error") {
@@ -509,13 +525,26 @@ function RepayStep({
     );
 }
 
-function DoneStep({}: StepProps) {
+function DoneStep({ transactionHash }: StepProps) {
     return (
         <div className="flex flex-col items-center gap-2">
             <CircleCheck className="stroke-green-500" size={50} />
+
             <p className="text-muted-foreground text-lg text-center">
                 Your transactoin was successful.
             </p>
+
+            {transactionHash && (
+                <a
+                    href={`${explorerBaseUrl}/tx/${transactionHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                >
+                    <span>{truncateAddress(transactionHash!)}</span>
+                    <ExternalLink size={16} />
+                </a>
+            )}
         </div>
     );
 }

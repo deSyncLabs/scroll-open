@@ -31,3 +31,5 @@ export const assets = [
 ];
 
 export const controllerAddress = getAddress(process.env.NEXT_PUBLIC_CONTROLLER_ADDRESS!);
+
+export const explorerBaseUrl = process.env.NEXT_PUBLIC_EXPLORER_BASE_URL!;

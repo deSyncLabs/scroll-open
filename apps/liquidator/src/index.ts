@@ -23,75 +23,46 @@ export default {
 			account: liquidatorAccount,
 		});
 
-		const borrowIntentEventsPromises = [];
+		const events = [];
 		for (const pool of pools) {
-			borrowIntentEventsPromises.push(
-				publicClient.getContractEvents({
-					address: pool,
-					abi: poolABI,
-					eventName: 'BorrowIntentPosted',
-					fromBlock: BigInt(env.FROM_BLOCK),
-				}),
-			);
+			const individualPoolEvents = await publicClient.getContractEvents({
+				address: pool,
+				abi: poolABI,
+				eventName: 'BorrowIntentPosted',
+				fromBlock: BigInt(env.FROM_BLOCK),
+			});
+
+			events.push(individualPoolEvents);
 		}
 
-		const borrowIntentEvents = await Promise.all(borrowIntentEventsPromises);
-		const borrowIntents = borrowIntentEvents.flat();
+		const borrowIntents = events.flat();
+		const watchlist = Array.from(new Set(borrowIntents.map((borrowIntent) => getAddress('0x' + borrowIntent.topics[1]?.slice(26)))));
 
-		const watchList = [];
-		for (const borrowIntent of borrowIntents) {
-			const address = getAddress('0x' + borrowIntent.topics[1]?.slice(26));
-			watchList.push(address);
-		}
-
-		const cleanWatchList = Array.from(new Set(watchList));
-
-		const healthFactorPromises = [];
-		for (const address of cleanWatchList) {
-			healthFactorPromises.push(
+		const healthFactors = await Promise.all(
+			watchlist.map((address) =>
 				publicClient.readContract({
 					address: controller,
 					abi: controllerABI,
 					functionName: 'healthFactorFor',
 					args: [address],
 				}),
-			);
+			),
+		);
+
+		const liquidationCandidates = watchlist.filter((_, index) => (healthFactors[index] as bigint) < RAY);
+		for (const candidate of liquidationCandidates) {
+			const { request } = await publicClient.simulateContract({
+				account: liquidatorAccount,
+				address: controller,
+				abi: controllerABI,
+				functionName: 'liquidate',
+				args: [candidate],
+				value: BigInt(0),
+			});
+
+			const hash = await walletClient.writeContract(request);
+
+			await publicClient.waitForTransactionReceipt({ hash });
 		}
-
-		const healthFactors: bigint[] = (await Promise.all(healthFactorPromises)) as bigint[];
-
-		const liquidationCandidates = [];
-		for (let i = 0; i < cleanWatchList.length; i++) {
-			if (healthFactors[i] < RAY) {
-				liquidationCandidates.push(cleanWatchList[i]);
-			}
-		}
-
-		if (liquidationCandidates.length <= 0) {
-			return;
-		}
-
-		const liquidationPromises = [];
-		for (const address of liquidationCandidates) {
-			liquidationPromises.push(
-				publicClient.simulateContract({
-					account: liquidatorAccount,
-					address: controller,
-					abi: controllerABI,
-					functionName: 'liquidate',
-					args: [address],
-				}),
-			);
-		}
-
-		const liquidationRequests = await Promise.all(liquidationPromises);
-
-		const receiptPromises = [];
-		for (const request of liquidationRequests) {
-			const hash = await walletClient.writeContract(request.request);
-			receiptPromises.push(publicClient.waitForTransactionReceipt({ hash }));
-		}
-
-		ctx.waitUntil(Promise.all(receiptPromises));
 	},
 };

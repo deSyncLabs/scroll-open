@@ -8,8 +8,9 @@ import {
     useWaitForTransactionReceipt,
 } from "wagmi";
 import { formatEther } from "viem";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, ExternalLink } from "lucide-react";
 import { mintableERC20ABI } from "@/shared/abis";
+import { explorerBaseUrl } from "@/shared/metadata";
 import { truncateAddress } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { ConnectWalletButton } from "./connect-wallet-button";
@@ -144,9 +145,15 @@ export function FaucetCard({ symbol, icon, address }: FaucetCardProps) {
                 <div className="flex flex-col">
                     <h2 className="font-semibold text-lg">{symbol}</h2>
 
-                    <p className="font-normal text-muted-foreground text-sm">
-                        {truncateAddress(address)}
-                    </p>
+                    <a
+                        href={`${explorerBaseUrl}/address/${address}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-normal text-muted-foreground text-sm flex items-center space-x-1 hover:text-foreground transition-colors"
+                    >
+                        <span>{truncateAddress(address)}</span>
+                        <ExternalLink size={16} />
+                    </a>
                 </div>
             </div>
 

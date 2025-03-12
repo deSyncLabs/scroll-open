@@ -11,11 +11,11 @@ import { assets } from "@/shared/metadata";
 import { SuppliedCard } from "@/components/supplied-card";
 
 export default function SupplyPage() {
-    const apys: { [key: string]: bigint } = {
-        BTC: BigInt(17886) * BigInt(10 ** 22),
-        ETH: BigInt(25276) * BigInt(10 ** 22),
-        USDC: BigInt(983) * BigInt(10 ** 23),
-    };
+    // const apys: { [key: string]: bigint } = {
+    //     BTC: BigInt(17886) * BigInt(10 ** 22),
+    //     ETH: BigInt(25276) * BigInt(10 ** 22),
+    //     USDC: BigInt(983) * BigInt(10 ** 23),
+    // };
 
     const suppliedCards = assets.map((asset) => (
         <SuppliedCard
@@ -24,7 +24,6 @@ export default function SupplyPage() {
             icon={asset.icon}
             deTokenAddress={asset.deTokenAddress}
             poolAddress={asset.poolAddress}
-            testAPY={apys[asset.symbol]}
         />
     ));
 
@@ -61,7 +60,6 @@ export default function SupplyPage() {
                                         icon={asset.icon}
                                         tokenAddress={asset.address}
                                         poolAddress={asset.poolAddress}
-                                        testAPY={apys[asset.symbol]}
                                     />
                                 ))}
                             </TableBody>

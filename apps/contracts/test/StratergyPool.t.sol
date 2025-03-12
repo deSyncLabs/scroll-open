@@ -970,4 +970,31 @@ contract StratergyPoolTest is Test {
             assertEq(debtToken.balanceOf(users[i]), (50 + i) * 1e18);
         }
     }
+
+    function test_canGrantAuthorizedRole() public {
+        vm.startPrank(owner);
+        pool.grantRole(pool.AUTHORIZED_ROLE(), bob);
+
+        assert(pool.hasRole(pool.AUTHORIZED_ROLE(), bob));
+    }
+
+    function test_grantedRoleCanExecuteAndUnexecuteStratergy() public {
+        vm.startPrank(owner);
+        pool.grantRole(pool.AUTHORIZED_ROLE(), bob);
+        vm.stopPrank();
+
+        vm.prank(bob);
+        pool.executeStratergy();
+
+        skip(1 hours);
+
+        vm.prank(bob);
+        pool.unexecuteStratergy();
+    }
+
+    function test_unauthorizedRoleCannotExecuteStratergy() public {
+        vm.prank(bob);
+        vm.expectRevert();
+        pool.executeStratergy();
+    }
 }
