@@ -39,7 +39,6 @@ type SupplyCardProps = {
     icon: string;
     tokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
-    testAPY: bigint;
 };
 
 type SupplyDialogProps = {

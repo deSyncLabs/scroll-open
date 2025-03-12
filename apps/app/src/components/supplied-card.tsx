@@ -38,7 +38,6 @@ type SuppliedCardProps = {
     icon: string;
     deTokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
-    testAPY: bigint;
 };
 
 type WithdrawDialogProps = {
