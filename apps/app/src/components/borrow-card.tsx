@@ -9,10 +9,10 @@ import {
 } from "wagmi";
 import { formatEther, parseEther } from "viem";
 import { useQueryClient } from "@tanstack/react-query";
-import { LoaderCircle, Clock } from "lucide-react";
-import { controllerAddress } from "@/shared/metadata";
+import { LoaderCircle, Clock, ExternalLink } from "lucide-react";
+import { controllerAddress, explorerBaseUrl } from "@/shared/metadata";
 import { poolABI, controllerABI } from "@/shared/abis";
-import { truncateNumberToTwoDecimals } from "@/lib/utils";
+import { truncateNumberToTwoDecimals, truncateAddress } from "@/lib/utils";
 import { TableRow, TableCell } from "./ui/table";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -54,7 +54,9 @@ type StepProps = {
     account: string;
     tokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
+    transactionHash: `0x${string}` | undefined;
     setStep: (step: number) => void;
+    setTransactionHash: (hash: `0x${string}` | undefined) => void;
 };
 
 export function BorrowCard({
@@ -146,6 +148,10 @@ function BorrowDialog({
     tokenAddress,
     poolAddress,
 }: BorrowDialogProps) {
+    const [transactionHash, setTransactionHash] = useState<
+        `0x${string}` | undefined
+    >();
+
     const steps = [
         {
             step: 1,
@@ -185,7 +191,9 @@ function BorrowDialog({
                         account={account}
                         tokenAddress={tokenAddress}
                         poolAddress={poolAddress}
+                        transactionHash={transactionHash}
                         setStep={setStep}
+                        setTransactionHash={setTransactionHash}
                     />
                 </>
             )}
@@ -212,6 +220,7 @@ function BorrowDialog({
 
 function BorrowStep({
     setStep,
+    setTransactionHash,
     account,
     poolAddress,
     tokenAddress,
@@ -265,6 +274,7 @@ function BorrowStep({
     useEffect(() => {
         if (receipt.status === "success") {
             setBorrowing(false);
+            setTransactionHash(borrow.data);
             queryClient.invalidateQueries();
             setStep(2);
         } else if (receipt.status === "error") {
@@ -366,13 +376,26 @@ function BorrowStep({
     );
 }
 
-function DoneStep({}: StepProps) {
+function DoneStep({ transactionHash }: StepProps) {
     return (
         <div className="flex flex-col items-center gap-2">
             <Clock className="stroke-green-500" size={50} />
+
             <p className="text-muted-foreground text-lg text-center">
                 Please wait upto 24 hours for your funds to be available.
             </p>
+
+            {transactionHash && (
+                <a
+                    href={`${explorerBaseUrl}/tx/${transactionHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                >
+                    <span>{truncateAddress(transactionHash!)}</span>
+                    <ExternalLink size={16} />
+                </a>
+            )}
         </div>
     );
 }

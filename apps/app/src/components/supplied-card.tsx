@@ -9,10 +9,10 @@ import {
 } from "wagmi";
 import { formatEther, parseEther } from "viem";
 import { useQueryClient } from "@tanstack/react-query";
-import { LoaderCircle, Clock } from "lucide-react";
+import { LoaderCircle, Clock, ExternalLink } from "lucide-react";
 import { deTokenABI, poolABI, controllerABI } from "@/shared/abis";
-import { controllerAddress } from "@/shared/metadata";
-import { truncateNumberToTwoDecimals, RAY } from "@/lib/utils";
+import { controllerAddress, explorerBaseUrl } from "@/shared/metadata";
+import { truncateNumberToTwoDecimals, truncateAddress, RAY } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { TableRow, TableCell } from "./ui/table";
@@ -55,7 +55,9 @@ type StepProps = {
     account: string;
     deTokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
+    transactionHash: `0x${string}` | undefined;
     setStep: (step: number) => void;
+    setTransactionHash: (hash: `0x${string}` | undefined) => void;
 };
 
 export function SuppliedCard({
@@ -169,6 +171,10 @@ function WithdrawDialog({
     deTokenAddress,
     poolAddress,
 }: WithdrawDialogProps) {
+    const [transactionHash, setTransactionHash] = useState<
+        `0x${string}` | undefined
+    >();
+
     const steps = [
         {
             step: 1,
@@ -208,7 +214,9 @@ function WithdrawDialog({
                         account={account}
                         deTokenAddress={deTokenAddress}
                         poolAddress={poolAddress}
+                        transactionHash={transactionHash}
                         setStep={setStep}
+                        setTransactionHash={setTransactionHash}
                     />
                 </>
             )}
@@ -238,6 +246,7 @@ function WithdrawStep({
     deTokenAddress,
     poolAddress,
     setStep,
+    setTransactionHash,
 }: StepProps) {
     const [amount, setAmount] = useState<string>("");
     const [validAmount, setValidAmount] = useState(false);
@@ -294,6 +303,7 @@ function WithdrawStep({
     useEffect(() => {
         if (receipt.status === "success") {
             setWithdrawing(false);
+            setTransactionHash(withdraw.data);
             queryClient.invalidateQueries();
             setStep(2);
         } else if (receipt.status === "error") {
@@ -395,13 +405,26 @@ function WithdrawStep({
     );
 }
 
-function DoneStep({}: StepProps) {
+function DoneStep({ transactionHash }: StepProps) {
     return (
         <div className="flex flex-col items-center gap-2">
             <Clock className="stroke-green-500" size={50} />
+
             <p className="text-muted-foreground text-lg text-center">
                 Please wait upto 24 hours for your funds to be unlocked
             </p>
+
+            {transactionHash && (
+                <a
+                    href={`${explorerBaseUrl}/tx/${transactionHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                >
+                    <span>{truncateAddress(transactionHash!)}</span>
+                    <ExternalLink size={16} />
+                </a>
+            )}
         </div>
     );
 }

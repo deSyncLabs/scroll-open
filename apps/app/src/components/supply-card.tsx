@@ -9,9 +9,10 @@ import {
 } from "wagmi";
 import { formatEther, parseEther } from "viem";
 import { useQueryClient } from "@tanstack/react-query";
-import { LoaderCircle, CircleCheck } from "lucide-react";
+import { LoaderCircle, CircleCheck, ExternalLink } from "lucide-react";
 import { mintableERC20ABI, poolABI } from "@/shared/abis";
-import { truncateNumberToTwoDecimals } from "@/lib/utils";
+import { explorerBaseUrl } from "@/shared/metadata";
+import { truncateNumberToTwoDecimals, truncateAddress } from "@/lib/utils";
 import { RAY } from "@/lib/utils";
 import { TableRow, TableCell } from "./ui/table";
 import { Button } from "./ui/button";
@@ -55,7 +56,9 @@ type StepProps = {
     account: `0x${string}`;
     tokenAddress: `0x${string}`;
     poolAddress: `0x${string}`;
+    transactionHash: `0x${string}` | undefined;
     setStep: (step: number) => void;
+    setTransactionHash: (hash: `0x${string}` | undefined) => void;
 };
 
 export function SupplyCard({
@@ -161,6 +164,10 @@ function SupplyDialog({
     tokenAddress,
     poolAddress,
 }: SupplyDialogProps) {
+    const [transactionHash, setTransactionHash] = useState<
+        `0x${string}` | undefined
+    >();
+
     const steps = [
         {
             step: 1,
@@ -208,6 +215,8 @@ function SupplyDialog({
                         tokenAddress={tokenAddress}
                         poolAddress={poolAddress}
                         setStep={setStep}
+                        transactionHash={transactionHash}
+                        setTransactionHash={setTransactionHash}
                     />
                 </>
             )}
@@ -334,6 +343,7 @@ function SupplyStep({
     tokenAddress,
     poolAddress,
     setStep,
+    setTransactionHash,
 }: StepProps) {
     const [amount, setAmount] = useState<string>("");
     const [validAmount, setValidAmount] = useState(false);
@@ -384,6 +394,7 @@ function SupplyStep({
     useEffect(() => {
         if (receipt.status === "success") {
             setSupplying(false);
+            setTransactionHash(supply.data);
             queryClient.invalidateQueries();
             setStep(3);
         } else if (receipt.status === "error") {
@@ -476,13 +487,26 @@ function SupplyStep({
     );
 }
 
-function DoneStep({}: StepProps) {
+function DoneStep({ transactionHash }: StepProps) {
     return (
         <div className="flex flex-col items-center gap-2">
             <CircleCheck className="stroke-green-500" size={50} />
+
             <p className="text-muted-foreground text-lg text-center">
                 Your transactoin was successful.
             </p>
+
+            {transactionHash && (
+                <a
+                    href={`${explorerBaseUrl}/tx/${transactionHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                >
+                    <span>{truncateAddress(transactionHash!)}</span>
+                    <ExternalLink size={16} />
+                </a>
+            )}
         </div>
     );
 }
