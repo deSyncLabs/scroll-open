@@ -32,3 +32,6 @@
 [submodule "apps/emergency-distributor/lib/forge-std"]
 	path = apps/emergency-distributor/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "apps/emergency-distributor/lib/openzeppelin-contracts"]
+	path = apps/emergency-distributor/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
