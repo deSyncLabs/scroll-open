@@ -11,7 +11,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "deSync - Democratizing loans and yields for all",
+  title: "deSync - Democratizing loans and yield for all",
   description:
     "Using delta neutral stratergies to offer zero-interest loans while providing the best yield to lenders.",
 };
