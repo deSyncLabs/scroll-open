@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Github } from "lucide-react";
 import { Button } from "./ui/button";
 
 export function Navbar() {
@@ -13,7 +14,19 @@ export function Navbar() {
                             deSync
                         </Link>
 
-                        <ul className="flex space-x-2">
+                        <ul className="flex space-x-2 items-center">
+                            <li>
+                                <Button variant={"ghost"} asChild>
+                                    <a
+                                        href="https://github.com/deSyncLabs/scroll-open/"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        <Github size={16} />
+                                    </a>
+                                </Button>
+                            </li>
+
                             <li>
                                 <Button disabled variant={"ghost"}>
                                     Docs
