@@ -12,7 +12,7 @@ Testnet: [https://testnet.desync.fi](https://testnet.desync.fi)
 
 ## Overview
 
-deSync is a zero-interest lending protocol built on Scroll that provides unlocks lucrative yield on for lenders while allowing borrowers to borrow at 0% interest.
+deSync is a zero-interest lending protocol built on Scroll that unlocks lucrative yield for lenders while allowing borrowers to borrow at 0% interest.
 
 deSync's lending protocol, provides a crypto-native, scalable solution for yield generation achieved by delta-hedging Bitcoin, Ethereum and USDC spot assets using perpetual futures contracts.
 
