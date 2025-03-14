@@ -28,8 +28,14 @@ export function Navbar() {
                             </li>
 
                             <li>
-                                <Button disabled variant={"ghost"}>
-                                    Docs
+                                <Button disabled variant={"ghost"} asChild>
+                                    <a
+                                        href="https://docs.desync.fi/"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        Docs
+                                    </a>
                                 </Button>
                             </li>
 

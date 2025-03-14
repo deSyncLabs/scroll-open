@@ -21,11 +21,17 @@ export default function HomePage() {
 
                     <div className="space-y-5 sm:space-x-5 flex flex-col-reverse sm:flex-row justify-center">
                         <Button
-                            disabled
                             variant={"ghost"}
-                            className="sm:text-lg p-5"
+                            className="sm:text-lg p-5 hover:bg-accent/70"
+                            asChild
                         >
-                            Learn More
+                            <a
+                                href="https://docs.desync.fi/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Learn More
+                            </a>
                         </Button>
 
                         <Button disabled className="sm:text-lg p-5">
