@@ -50,11 +50,11 @@ const config: Config = {
                     label: "Home",
                     position: "right",
                 },
-                // {
-                //     href: "https://github.com/deSyncLabs/scroll-open/",
-                //     label: "Testnet",
-                //     position: "right",
-                // },
+                {
+                    href: "https://testnet.desync.fi/",
+                    label: "Testnet",
+                    position: "right",
+                },
                 {
                     href: "https://github.com/deSyncLabs/scroll-open/",
                     label: "GitHub",
@@ -69,11 +69,11 @@ const config: Config = {
                     label: "Home",
                     href: "https://desync.fi/",
                 },
-                // {
-                //     href: "https://github.com/deSyncLabs/scroll-open/",
-                //     label: "Testnet",
-                //     position: "right",
-                // },
+                {
+                    href: "https://testnet.desync.fi/",
+                    label: "Testnet",
+                    position: "right",
+                },
                 {
                     label: "GitHub",
                     href: "https://github.com/deSyncLabs/scroll-open/",
