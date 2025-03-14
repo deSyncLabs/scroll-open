@@ -21,7 +21,7 @@ This is a monorepo of all of deSync's code. We are using Turborepo to manage the
 | [app](/apps/app) | Houses the main app, deployed at [https://testnet.desync.fi](https://testnet.desync.fi). |
 | [contracts](/apps/contracts) | Contains the core deSync smartcontracts and automation smartcontracts. |
 | [docs](/apps/docs) | Contains the docs, deployed at [https://docs.desync.fi](https://docs.desync.fi) |
-| [emergency-rebalancer](/apps/emergency-rebalancer). | Contains smartcontracts to rebalance the pools incase the automation fails. |
+| [emergency-rebalancer](/apps/emergency-rebalancer) | Contains smartcontracts to rebalance the pools incase the automation fails. |
 | [emergency-distributor](/apps/emergency-distributor) | Contains smartcontracts to distribute funds to the users incase the automation fails. |
 | [liquidator](/apps/liquidator) | Conatins the liquidation cron. |
 | [www](/apps/www) | Conatins the homepage, deplyed at [https://desync.fi](https://desync.fi) |
