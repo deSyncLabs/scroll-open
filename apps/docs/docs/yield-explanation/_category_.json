@@ -1,0 +1,9 @@
+{
+    "label": "Yield Explanation",
+    "position": 2,
+    "link": {
+      "type": "generated-index",
+      "description": "Explation of how deSync generates yield."
+    }
+  }
+  
