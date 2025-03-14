@@ -40,7 +40,15 @@ export function Navbar() {
                             </li>
 
                             <li>
-                                <Button disabled>Testnet</Button>
+                                <Button asChild>
+                                    <a
+                                        href="https://testnet.desync.fi"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        Testnet
+                                    </a>
+                                </Button>
                             </li>
                         </ul>
                     </div>
