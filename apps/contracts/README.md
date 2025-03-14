@@ -29,3 +29,7 @@ Pool.sol - "Implents the abstract Pool contract with all the pool functionalitie
 StratergyPool.sol - "Extends the Pool contract and implements the yield generation stratergy."
 Controller.sol - "Implements the hub contract for all the pools which also keeps track of a user health factor and manages debt."
 ```
+
+## Safety
+
+This software is experimental and unaudited, and is provided on an 'as is' and 'as available' basis. We do not give any warranties and will not be liable for any loss incurred through any use of this codebase.
