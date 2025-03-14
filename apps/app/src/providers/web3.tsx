@@ -14,8 +14,8 @@ const config = createConfig(
             process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
         appName: "deSync",
         appDescription: "Zero Interest Lending Protocol",
-        appUrl: "https://family.co",
-        appIcon: "https://family.co/logo.png",
+        appUrl: "https://testnet.desync.fi",
+        appIcon: "/logo.png",
     })
 );
 
