@@ -5,5 +5,5 @@ This is cron deployed to Cloudflare Workers that runs every few hours to liquida
 > [!WARNING]
 > This is just a test liquidator and we'll eventually get community member to build their own bots.
 
-> [!INFO]
+> [!NOTE]
 > We will share protocol fees earned on a liquidated position with eaarly bot developers.
