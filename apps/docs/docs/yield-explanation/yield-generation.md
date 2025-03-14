@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Yield Generation
 
-deSync offers a yield range of 5-100%+. We generate this yiel by providing liquidity to AMMs. To prevent [Impermanent Loss (IP)](/yield-explanation/impermanent-loss), we create a hedge by opening a perpetual futures short position. Historically the funding rate for crypto futures has mostly been positve which means holding a short postion also allows us to consistently earn from funding rates.
+deSync offers a yield range of 5-100%+. We generate this yiel by providing liquidity to A`M`Ms. To prevent [Impermanent Loss (IP)](/yield-explanation/impermanent-loss), we create a hedge by opening a perpetual futures short position. Historically the funding rate for crypto futures has mostly been positve which means holding a short postion also allows us to consistently earn from funding rates.
 
 ## Establish a Futures Position at the Start:
 
@@ -92,6 +92,8 @@ Now you have more ETH than you started with (1.1 vs. 1) and less USDC (1820 vs. 
     - USDC: 1820 + 180 = 2000 USDC
 
 **Result:** You again end up with 1 ETH and 2000 USDC, just as you started, despite the price going down.
+
+## Conclusion
 
 - By taking a short futures position equal to the initial amount of ETH deposited, you’ve effectively neutralized the impact of price movements on your ability to end up with your original principal.
 - After closing both positions (the LP and the futures), you might initially have a different mix than you started with, but you’ll have enough value in USDC and ETH combined that you can trade back to your original desired amounts (1 ETH and 2000 USDC).
