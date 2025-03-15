@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Yield Generation
 
-deSync offers a yield range of 5-100%+. We generate this yiel by providing liquidity to A`M`Ms. To prevent [Impermanent Loss (IP)](/yield-explanation/impermanent-loss), we create a hedge by opening a perpetual futures short position. Historically the funding rate for crypto futures has mostly been positve which means holding a short postion also allows us to consistently earn from funding rates.
+deSync offers a yield range of 5-100%+. We generate this yiel by providing liquidity to AMMs. To prevent [Impermanent Loss (IP)](/yield-explanation/impermanent-loss), we create a hedge by opening a perpetual futures short position. Historically the funding rate for crypto futures has mostly been positve which means holding a short postion also allows us to consistently earn from funding rates.
 
 ## Establish a Futures Position at the Start:
 
