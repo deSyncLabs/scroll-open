@@ -27,7 +27,7 @@ export default function RootLayout({
         <Providers>
           <div className="font-[family-name:var(--font-geist-mono)] flex flex-col items-center">
             <Navbar />
-            <main className="container py-10">{children}</main>
+            <main className="container py-10 px-5">{children}</main>
           </div>
         </Providers>
       </body>
